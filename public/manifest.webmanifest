@@ -1,0 +1,17 @@
+{
+  "name": "NexoBarrio",
+  "short_name": "NexoBarrio",
+  "description": "Productos, oficios, recursos y ayuda cerca de ti.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f6ef",
+  "theme_color": "#0d4f40",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
