@@ -2,12 +2,15 @@ import config from '@payload-config'
 import { getPayload } from 'payload'
 
 import { toPublicListing } from '@/lib/listing-view'
+import { fallbackDemoListings } from '@/lib/demo-listings'
+import { ensureSeeded } from '@/lib/seed-db'
 import { NeighborhoodApp, type ListingView } from './NeighborhoodApp'
 
-export const dynamic = 'force-static'
+export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
   const payload = await getPayload({ config })
+  await ensureSeeded(payload)
   const result = await payload.find({
     collection: 'listings' as never,
     depth: 1,
@@ -16,7 +19,8 @@ export default async function HomePage() {
     overrideAccess: false,
   })
 
-  const listings: ListingView[] = result.docs.map(toPublicListing)
+  const dbListings: ListingView[] = result.docs.map(toPublicListing)
+  const listings: ListingView[] = dbListings.length > 0 ? dbListings : fallbackDemoListings
 
   return <NeighborhoodApp listings={listings} />
 }

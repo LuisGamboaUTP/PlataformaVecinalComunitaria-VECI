@@ -4,6 +4,7 @@ import sharp from 'sharp'
 
 import { appAuth } from '@/lib/app-auth'
 import { toPublicListing } from '@/lib/listing-view'
+import { ensureSeeded } from '@/lib/seed-db'
 
 const listingKinds = new Set([
   'product',
@@ -21,6 +22,7 @@ const cleanText = (value: unknown, max: number) =>
 
 export async function GET() {
   const payload = await getPayload({ config })
+  await ensureSeeded(payload)
   const result = await payload.find({
     collection: 'listings' as never,
     depth: 1,

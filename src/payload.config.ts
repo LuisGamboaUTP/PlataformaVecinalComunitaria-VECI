@@ -1,5 +1,7 @@
 import path from 'path'
-import { buildFigmaConfig } from '@payloadcms/figma'
+import { buildConfig } from 'payload'
+import { sqliteAdapter } from '@payloadcms/db-sqlite'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { mcpPlugin } from '@payloadcms/plugin-mcp'
 import { es as adminLanguage } from '@payloadcms/translations/languages/es'
 import { fileURLToPath } from 'url'
@@ -21,18 +23,21 @@ import { Reservations } from './collections/Reservations'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+const defaultSqliteUrl =
+  process.env.VERCEL === '1'
+    ? 'file:/tmp/local.db'
+    : `file:${path.resolve(dirname, 'local.db')}`
 
-export default buildFigmaConfig({
+export default buildConfig({
+  secret: process.env.PAYLOAD_SECRET || 'hackaton-veci-local-secret-key-1234567890',
+  db: sqliteAdapter({
+    client: {
+      url: process.env.DATABASE_URI || defaultSqliteUrl,
+    },
+  }),
+  editor: lexicalEditor(),
   admin: {
     user: Admins.slug,
-    constrainWidth: true,
-    dashboard: {
-      widgets: [],
-      defaultLayout: [
-        { widgetSlug: 'activity', width: 'full' },
-        { widgetSlug: 'collections', width: 'full' },
-      ],
-    },
     importMap: {
       baseDir: path.resolve(dirname),
     },

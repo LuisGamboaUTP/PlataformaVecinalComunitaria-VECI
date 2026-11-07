@@ -125,7 +125,7 @@ export interface Config {
     'payload-llm-instructions': PayloadLlmInstructionsSelect<false> | PayloadLlmInstructionsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: ('false' | 'none' | 'null') | false | null | 'en' | 'en'[];
   globals: {};
@@ -185,32 +185,43 @@ export interface UserAuthOperations {
  * via the `definition` "admins".
  */
 export interface Admin {
-  id: string;
-  figmaHandle?: string | null;
-  figmaImageUrl?: string | null;
-  userGroups?: string[] | null;
-  makePermission?: ('view' | 'edit') | null;
-  email?: string | null;
+  id: number;
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
   collection: 'admins';
 }
 /**
@@ -218,7 +229,7 @@ export interface Admin {
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
   displayName: string;
   zoneName: string;
   bio?: string | null;
@@ -239,20 +250,20 @@ export interface User {
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -279,34 +290,32 @@ export interface User {
  * via the `definition` "media".
  */
 export interface Media {
-  id: string;
+  id: number;
   /**
    * Cuenta de la aplicación que subió el archivo. Vacío en medios editoriales.
    */
-  owner?: (string | null) | User;
+  owner?: (number | null) | User;
   useCase?: 'listing-image' | null;
   alt: string;
-  _h_folders?: (string | null) | Folder;
-  _h_tags?: (string | Tag)[] | null;
-  prefix?: string | null;
-  _objectKey?: string | null;
+  _h_folders?: (number | null) | Folder;
+  _h_tags?: (number | Tag)[] | null;
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -335,26 +344,26 @@ export interface Media {
  * via the `definition` "folders".
  */
 export interface Folder {
-  id: string;
-  _h_folders?: (string | null) | Folder;
+  id: number;
+  _h_folders?: (number | null) | Folder;
   name: string;
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -366,26 +375,26 @@ export interface Folder {
  * via the `definition` "tags".
  */
 export interface Tag {
-  id: string;
-  _h_tags?: (string | null) | Tag;
+  id: number;
+  _h_tags?: (number | null) | Tag;
   name: string;
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -397,7 +406,7 @@ export interface Tag {
  * via the `definition` "zones".
  */
 export interface Zone {
-  id: string;
+  id: number;
   name: string;
   district: string;
   centerLatitude: number;
@@ -406,20 +415,20 @@ export interface Zone {
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -429,8 +438,8 @@ export interface Zone {
  * via the `definition` "listings".
  */
 export interface Listing {
-  id: string;
-  owner?: (string | null) | User;
+  id: number;
+  owner?: (number | null) | User;
   /**
    * Snapshot público; evita exponer el documento completo del usuario.
    */
@@ -449,7 +458,7 @@ export interface Listing {
     x: number;
     y: number;
   };
-  media?: (string | null) | Media;
+  media?: (number | null) | Media;
   availability?: ('now' | 'today' | 'coordinate') | null;
   availabilityUpdatedAt?: string | null;
   status: 'draft' | 'published' | 'paused' | 'reserved' | 'completed' | 'archived';
@@ -475,20 +484,20 @@ export interface Listing {
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -498,12 +507,12 @@ export interface Listing {
  * via the `definition` "interactions".
  */
 export interface Interaction {
-  id: string;
-  owner?: (string | null) | User;
+  id: number;
+  owner?: (number | null) | User;
   summary: string;
   type: 'service' | 'barter' | 'loan' | 'gift' | 'help' | 'route' | 'shared-need';
-  listing: string | Listing;
-  counterparty?: (string | null) | User;
+  listing: number | Listing;
+  counterparty?: (number | null) | User;
   details: string;
   proposedDate?: string | null;
   idempotencyKey: string;
@@ -531,20 +540,20 @@ export interface Interaction {
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -554,31 +563,31 @@ export interface Interaction {
  * via the `definition` "reservations".
  */
 export interface Reservation {
-  id: string;
-  owner: string | User;
+  id: number;
+  owner: number | User;
   /**
    * Candado único que evita reservar dos veces el mismo recurso.
    */
   listingKey: string;
-  listing: string | Listing;
-  interaction: string | Interaction;
+  listing: number | Listing;
+  interaction: number | Interaction;
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -588,29 +597,29 @@ export interface Reservation {
  * via the `definition` "messages".
  */
 export interface Message {
-  id: string;
-  interaction: string | Interaction;
-  sender: string | User;
-  participants: (string | User)[];
+  id: number;
+  interaction: number | Interaction;
+  sender: number | User;
+  participants: (number | User)[];
   body: string;
   deliveryState?: ('sent' | 'failed') | null;
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -620,10 +629,10 @@ export interface Message {
  * via the `definition` "reviews".
  */
 export interface Review {
-  id: string;
-  interaction: string | Interaction;
-  author: string | User;
-  subject: string | User;
+  id: number;
+  interaction: number | Interaction;
+  author: number | User;
+  subject: number | User;
   reviewKey: string;
   stars: number;
   comment: string;
@@ -631,20 +640,20 @@ export interface Review {
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -654,7 +663,7 @@ export interface Review {
  * via the `definition` "communities".
  */
 export interface Community {
-  id: string;
+  id: number;
   name: string;
   description: string;
   zoneName?: string | null;
@@ -666,20 +675,20 @@ export interface Community {
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -689,7 +698,7 @@ export interface Community {
  * via the `definition` "resource-directory".
  */
 export interface ResourceDirectory {
-  id: string;
+  id: number;
   name: string;
   type: 'official' | 'community';
   phone?: string | null;
@@ -702,20 +711,20 @@ export interface ResourceDirectory {
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -725,8 +734,8 @@ export interface ResourceDirectory {
  * via the `definition` "notifications".
  */
 export interface Notification {
-  id: string;
-  owner: string | User;
+  id: number;
+  owner: number | User;
   title: string;
   body: string;
   kind: 'message' | 'request' | 'match' | 'help' | 'reminder' | 'system';
@@ -736,20 +745,20 @@ export interface Notification {
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -759,7 +768,7 @@ export interface Notification {
  * via the `definition` "reports".
  */
 export interface Report {
-  id: string;
+  id: number;
   reason: 'fraud' | 'abuse' | 'spam' | 'privacy' | 'false-information' | 'other';
   details: string;
   targetType: 'listing' | 'profile' | 'message' | 'review' | 'emergency';
@@ -768,20 +777,20 @@ export interface Report {
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -791,7 +800,7 @@ export interface Report {
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -808,77 +817,77 @@ export interface PayloadKv {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
       } | null)
     | ({
         relationTo: 'folders';
-        value: string | Folder;
+        value: number | Folder;
       } | null)
     | ({
         relationTo: 'tags';
-        value: string | Tag;
+        value: number | Tag;
       } | null)
     | ({
         relationTo: 'zones';
-        value: string | Zone;
+        value: number | Zone;
       } | null)
     | ({
         relationTo: 'listings';
-        value: string | Listing;
+        value: number | Listing;
       } | null)
     | ({
         relationTo: 'interactions';
-        value: string | Interaction;
+        value: number | Interaction;
       } | null)
     | ({
         relationTo: 'reservations';
-        value: string | Reservation;
+        value: number | Reservation;
       } | null)
     | ({
         relationTo: 'messages';
-        value: string | Message;
+        value: number | Message;
       } | null)
     | ({
         relationTo: 'reviews';
-        value: string | Review;
+        value: number | Review;
       } | null)
     | ({
         relationTo: 'communities';
-        value: string | Community;
+        value: number | Community;
       } | null)
     | ({
         relationTo: 'resource-directory';
-        value: string | ResourceDirectory;
+        value: number | ResourceDirectory;
       } | null)
     | ({
         relationTo: 'notifications';
-        value: string | Notification;
+        value: number | Notification;
       } | null)
     | ({
         relationTo: 'reports';
-        value: string | Report;
+        value: number | Report;
       } | null);
   globalSlug?: string | null;
   user:
     | {
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       }
     | {
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       };
   updatedAt: string;
   createdAt: string;
@@ -888,15 +897,15 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user:
     | {
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       }
     | {
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       };
   key?: string | null;
   value?:
@@ -916,7 +925,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -936,20 +945,20 @@ export interface PayloadLlmInstruction {
   createdBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedBy?:
     | ({
         relationTo: 'admins';
-        value: string | Admin;
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null);
   updatedAt: string;
   createdAt: string;
@@ -959,15 +968,25 @@ export interface PayloadLlmInstruction {
  * via the `definition` "admins_select".
  */
 export interface AdminsSelect<T extends boolean = true> {
-  figmaHandle?: T;
-  figmaImageUrl?: T;
-  userGroups?: T;
-  makePermission?: T;
-  email?: T;
   createdBy?: T;
   updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  resetPasswordRequestedAt?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1017,8 +1036,6 @@ export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   _h_folders?: T;
   _h_tags?: T;
-  prefix?: T;
-  _objectKey?: T;
   createdBy?: T;
   updatedBy?: T;
   updatedAt?: T;
