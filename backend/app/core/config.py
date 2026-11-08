@@ -9,9 +9,9 @@ load_dotenv(BASE_DIR.parent / ".env.local", override=False)
 
 
 class Settings:
-    PROJECT_NAME: str = "NexoBarrio API (FastAPI + Supabase)"
+    PROJECT_NAME: str = "VECI API (FastAPI + Supabase)"
     PROJECT_DESCRIPTION: str = (
-        "Arquitectura en capas para NexoBarrio — Reto Hackatón UTP + El Comercio (Grupo 22 - Innovatrux)"
+        "Arquitectura en capas para VECI — Reto Hackatón UTP + El Comercio (Grupo 22 - Innovatrux)"
     )
     VERSION: str = "1.0.0"
 

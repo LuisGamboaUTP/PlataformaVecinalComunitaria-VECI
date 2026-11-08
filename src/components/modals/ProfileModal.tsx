@@ -106,7 +106,8 @@ export function ProfileModal({
       </div>
       {profileTab === 'identity' && (
         <p>
-          Este perfil se guarda solo en tu navegador. La identidad no se verifica automáticamente.
+          Tu perfil vecinal valida tu identidad con documento oficial (DNI o CE) y muestra solo tu
+          nombre público y zona.
         </p>
       )}
       {profileTab === 'reading' && (
@@ -220,12 +221,12 @@ export function ProfileModal({
           Cerrar sesión
         </button>
       ) : (
-        <Link href="/auth" className="primary-button primary-button--wide">
+        <Link href="/login" className="primary-button primary-button--wide">
           Ingresar o crear cuenta
         </Link>
       )}
       <p className="prototype-caption">
-        Esta versión no recopila documentos de identidad ni comparte datos con otros dispositivos.
+        Tu dirección exacta nunca es pública; solo se comparte tu zona y nombre vecinal.
       </p>
     </div>
   )

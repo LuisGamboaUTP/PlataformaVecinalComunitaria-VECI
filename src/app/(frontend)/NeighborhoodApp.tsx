@@ -42,6 +42,7 @@ import {
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { SplashScreen } from '@/components/onboarding/SplashScreen'
 import { OnboardingView } from '@/components/onboarding/OnboardingView'
+import { InAppTourModal } from '@/components/onboarding/InAppTourModal'
 import { CommunityTab } from '@/components/community/CommunityTab'
 import { EmergencyModal } from '@/components/modals/EmergencyModal'
 import { listingArt } from '@/lib/listing-art'
@@ -152,6 +153,7 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
   const router = useRouter()
   const [splash, setSplash] = useState(true)
   const [onboarding, setOnboarding] = useState(false)
+  const [showTour, setShowTour] = useState(false)
   const [tab, setTab] = useState<Tab>('map')
   const [modal, setModal] = useState<Modal>(null)
   const [selected, setSelected] = useState<ListingView | null>(listings[0] ?? null)
@@ -221,6 +223,12 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
         setInteractions(remoteInteractions)
       }
     })
+    void api.getNotifications().then((remoteNotifications) => {
+      if (remoteNotifications?.notifications) {
+        setNotifications(remoteNotifications.notifications)
+        setUnreadNotifications(remoteNotifications.unread ?? 0)
+      }
+    })
 
     if ('serviceWorker' in window.navigator && process.env.NODE_ENV === 'production') {
       void window.navigator.serviceWorker.register('/sw.js')
@@ -231,6 +239,19 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
       const hasOnboarded = window.localStorage.getItem('nexobarrio-onboarded')
       if (!hasOnboarded) {
         setOnboarding(true)
+      } else {
+        const queryParams = new URLSearchParams(window.location.search)
+        const wantsTour =
+          queryParams.get('tour') === '1' ||
+          window.localStorage.getItem('nexobarrio-show-tour') === '1'
+        if (wantsTour) {
+          setShowTour(true)
+          try {
+            window.localStorage.removeItem('nexobarrio-show-tour')
+          } catch {
+            /* ignore */
+          }
+        }
       }
     }, 1200)
 
@@ -445,8 +466,8 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
       <section className="app-main">
         <header className="topbar">
           <div className="brand-lockup topbar__brand">
-            <span className="brand-mark">N</span>
-            <span>NexoBarrio</span>
+            <img src="/images/veci-logo.jpg" alt="VECI" className="brand-logo-img" />
+            <span>VECI</span>
           </div>
           <button
             className="zone-button"
@@ -542,6 +563,7 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
             onPublish={() => setTab('publish')}
             geoNotice={geoNotice}
             setGeoNotice={setGeoNotice}
+            onStartTour={() => setShowTour(true)}
           />
         )}
 
@@ -653,17 +675,29 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
                 onOpenImpact={() => setModal('impact')}
                 onOpenWelcome={() => {
                   setModal(null)
-                  setOnboarding(true)
+                  setShowTour(true)
                 }}
               />
             )}
             {modal === 'impact' && <ImpactModal listings={liveListings} />}
-            {modal === 'help' && <HelpView />}
+            {modal === 'help' && (
+              <HelpView
+                onNavigate={(nextTab, nextModal) => {
+                  if (nextTab) setTab(nextTab)
+                  setModal(nextModal ?? null)
+                }}
+                onStartTour={() => {
+                  setModal(null)
+                  setShowTour(true)
+                }}
+              />
+            )}
             {modal === 'notifications' && (
               <NotificationsView
                 notifications={notifications}
                 unread={unreadNotifications}
                 onMarkAllRead={async () => {
+                  await api.markNotificationsRead()
                   setNotifications((current) =>
                     current.map((notification) => ({ ...notification, read: true })),
                   )
@@ -674,6 +708,9 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
           </section>
         </div>
       )}
+
+      {/* TOUR ONBOARDING INTERACTIVO DE 5 PASOS */}
+      <InAppTourModal isOpen={showTour} onClose={() => setShowTour(false)} />
     </main>
   )
 }
@@ -698,7 +735,14 @@ function EmptyState({ onPublish, onExpand }: { onPublish: () => void; onExpand?:
   )
 }
 
-function HelpView() {
+function HelpView({
+  onNavigate,
+  onStartTour,
+}: {
+  onNavigate: (tab?: Tab, modal?: Modal) => void
+  onStartTour?: () => void
+}) {
+  const [topic, setTopic] = useState<'map' | 'barter' | 'emergency'>('map')
   return (
     <div className="simple-modal">
       <span className="simple-modal__icon">
@@ -707,32 +751,102 @@ function HelpView() {
       <span className="eyebrow">Centro de ayuda</span>
       <h1>¿Qué quieres resolver?</h1>
       <p>
-        Usa el mapa para descubrir, Publicar para ofrecer o pedir, y Comunidad para coordinar con tu
-        zona.
+        Usa el mapa para descubrir por colores, Publicar para ofrecer o pedir en 3 clics, y
+        Comunidad para coordinar con tu zona.
       </p>
       <div className="help-options">
-        <button>
+        <button
+          type="button"
+          className={topic === 'map' ? 'is-active' : ''}
+          onClick={() => setTopic('map')}
+        >
           <Map size={20} />
           <span>
-            <strong>Cómo usar el mapa</strong>
-            <small>Marcadores y lista sincronizados</small>
+            <strong>Cómo usar el mapa y colores</strong>
+            <small>Pines por categoría y vista rápida</small>
           </span>
         </button>
-        <button>
+        <button
+          type="button"
+          className={topic === 'barter' ? 'is-active' : ''}
+          onClick={() => setTopic('barter')}
+        >
           <Sparkles size={20} />
           <span>
-            <strong>Intercambios seguros</strong>
-            <small>Aceptación de ambas partes</small>
+            <strong>Intercambios y préstamos seguros</strong>
+            <small>Visto Bueno Vecinal y devolución doble</small>
           </span>
         </button>
-        <button>
+        <button
+          type="button"
+          className={topic === 'emergency' ? 'is-active' : ''}
+          onClick={() => setTopic('emergency')}
+        >
           <HandHeart size={20} />
           <span>
-            <strong>Ayuda vs. emergencia</strong>
+            <strong>Ayuda del día a día vs. emergencia</strong>
             <small>Cuándo usar cada flujo</small>
           </span>
         </button>
       </div>
+      {topic === 'map' && (
+        <div className="profile-welcome-box">
+          <p>
+            <strong>1. Filtra por color:</strong> Cada categoría tiene su propio pin (Azul = Oficios, Morado = Préstamos gratis, Verde = Banco de Tiempo, Naranja = Trueque).
+            <br />
+            <strong>2. Toca un pin:</strong> Verás el resumen flotante con precio y recomendación, y podrás abrir la ficha completa.
+          </p>
+          {onStartTour && (
+            <button
+              type="button"
+              className="secondary-button secondary-button--wide"
+              style={{ marginBottom: '8px' }}
+              onClick={onStartTour}
+            >
+              <Sparkles size={16} /> Ver tour guiado paso a paso (5 pasos)
+            </button>
+          )}
+          <button
+            type="button"
+            className="primary-button primary-button--wide"
+            onClick={() => onNavigate('map', null)}
+          >
+            Ir al mapa ahora
+          </button>
+        </div>
+      )}
+      {topic === 'barter' && (
+        <div className="profile-welcome-box">
+          <p>
+            <strong>Confianza sin dinero:</strong> Verifica el sello de{' '}
+            <em>Visto Bueno Vecinal</em> en la ficha. En préstamos de herramientas, tanto quien
+            presta como quien recibe confirman la devolución en la pestaña <strong>Actividad</strong>.
+          </p>
+          <button
+            type="button"
+            className="primary-button primary-button--wide"
+            onClick={() => onNavigate('explore', null)}
+          >
+            Explorar trueques y préstamos
+          </button>
+        </div>
+      )}
+      {topic === 'emergency' && (
+        <div className="profile-welcome-box">
+          <p>
+            <strong>Emergencia crítica:</strong> Usa el botón rojo superior para llamar sin internet
+            a Bomberos (116), Policía (105) o SAMU (106), contactar oficios de soporte o reportar
+            vecinos vulnerables en el tablero humanitario.
+          </p>
+          <button
+            type="button"
+            className="primary-button primary-button--wide"
+            onClick={() => onNavigate(undefined, 'emergency')}
+          >
+            Abrir módulo de Emergencia
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -794,7 +908,9 @@ function NotificationsView({
           </div>
         )}
       </div>
-      <p className="prototype-caption">Los avisos de esta versión se guardan solo en este dispositivo.</p>
+      <p className="prototype-caption">
+        Tus avisos y solicitudes se sincronizan con tu barrio y cuentan con respaldo local.
+      </p>
     </div>
   )
 }

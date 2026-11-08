@@ -199,7 +199,12 @@ export function AuthForm({
         }
       }
 
-      window.location.assign('/')
+      try {
+        localStorage.setItem('nexobarrio-show-tour', '1')
+      } catch {
+        /* ignore */
+      }
+      window.location.assign('/?tour=1')
     } catch {
       setError('No se pudo guardar el perfil.')
     } finally {
@@ -227,7 +232,12 @@ export function AuthForm({
         docNumber: provider ? '44556677' : '001234567',
       })
     }
-    window.location.assign('/')
+    try {
+      localStorage.setItem('nexobarrio-show-tour', '1')
+    } catch {
+      /* ignore */
+    }
+    window.location.assign('/?tour=1')
   }
 
   return (
@@ -237,8 +247,8 @@ export function AuthForm({
           <ArrowLeft size={20} />
         </Link>
         <div className="brand-lockup brand-lockup--light">
-          <span className="brand-mark">N</span>
-          <span>NexoBarrio</span>
+          <img src="/images/veci-logo.jpg" alt="VECI" className="brand-logo-img" />
+          <span>VECI</span>
         </div>
         <div className="auth-story__copy">
           <span className="eyebrow eyebrow--light">Tu barrio, más cerca</span>
@@ -258,8 +268,8 @@ export function AuthForm({
               <ArrowLeft size={18} />
             </Link>
             <div className="brand-lockup">
-              <span className="brand-mark">N</span>
-              <span>NexoBarrio</span>
+              <img src="/images/veci-logo.jpg" alt="VECI" className="brand-logo-img" />
+              <span>VECI</span>
             </div>
           </div>
 

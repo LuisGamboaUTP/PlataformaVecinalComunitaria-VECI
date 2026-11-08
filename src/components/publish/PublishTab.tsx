@@ -76,14 +76,17 @@ export function PublishTab({
             return (
               <button
                 key={kind}
-                className={publishKind === kind ? 'is-active' : ''}
+                type="button"
+                data-kind={kind}
+                className={`publish-kind-btn publish-kind-btn--${kind} ${publishKind === kind ? 'is-active' : ''}`}
                 onClick={() => {
                   setPublishKind(kind)
                   const savedDraft = JSON.parse(localStorage.getItem('nexobarrio-draft') || '{}')
                   localStorage.setItem('nexobarrio-draft', JSON.stringify({ ...savedDraft, kind }))
                 }}
               >
-                <Icon size={21} />
+                <i className={`kind-dot kind-dot--${kind}`} aria-hidden="true" />
+                <Icon size={20} />
                 <span>{kindLabel[kind]}</span>
                 {publishKind === kind && <Check size={16} />}
               </button>
@@ -198,7 +201,7 @@ export function PublishTab({
                     {!signedIn && (
                       <>
                         {' '}
-                        <Link href="/auth">Ingresar o crear cuenta</Link>
+                        <Link href="/login">Ingresar o crear cuenta</Link>
                       </>
                     )}
                   </p>

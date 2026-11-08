@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { HandHeart, MessageCircle, Plus, Wrench } from 'lucide-react'
+import { api } from '@/lib/api-client'
+import { currentUser } from '@/lib/local-store'
 
-type Post = { id: string; body: string; comments: string[] }
+type Post = { id: string; authorName?: string; body: string; comments: string[] }
 const storageKey = 'nexobarrio-community-v1'
 
 export function CommunityTab({ onOpenListing }: { onOpenListing: () => void }) {
@@ -31,6 +33,22 @@ export function CommunityTab({ onOpenListing }: { onOpenListing: () => void }) {
       /* Start with the built-in view if local data is damaged. */
     }
     setReady(true)
+    void api.getCommunityPosts().then((remotePosts) => {
+      if (remotePosts && remotePosts.length > 0) {
+        setPosts((current) => {
+          const existingIds = new Set(current.map((p) => p.id))
+          const mapped: Post[] = remotePosts
+            .filter((p) => !existingIds.has(p.id))
+            .map((p) => ({
+              id: p.id,
+              authorName: p.authorName || 'Vecino de tu barrio',
+              body: p.body,
+              comments: Array.isArray(p.comments) ? p.comments : [],
+            }))
+          return [...mapped, ...current]
+        })
+      }
+    })
   }, [])
   useEffect(() => {
     if (ready) localStorage.setItem(storageKey, JSON.stringify({ circles, posts, joined, routes }))
@@ -40,10 +58,31 @@ export function CommunityTab({ onOpenListing }: { onOpenListing: () => void }) {
     const name = window.prompt('Nombre del nuevo círculo')?.trim()
     if (name && !circles.includes(name)) setCircles([...circles, name.slice(0, 60)])
   }
-  const addPost = () => {
-    if (draft.trim().length < 5) return
-    setPosts([{ id: crypto.randomUUID(), body: draft.trim(), comments: [] }, ...posts])
+  const addPost = async () => {
+    const text = draft.trim()
+    if (text.length < 5) return
+    const user = currentUser()
+    const authorName = user?.displayName || 'Vecino de tu barrio'
+    const authorInitials = authorName.slice(0, 2).toUpperCase()
     setDraft('')
+
+    const remote = await api.createCommunityPost({
+      circleName: circles[0] || 'Centro Cívico',
+      authorName,
+      authorInitials,
+      body: text,
+      hasSharedListing: false,
+    })
+
+    setPosts((current) => [
+      {
+        id: remote?.id || crypto.randomUUID(),
+        authorName,
+        body: text,
+        comments: [],
+      },
+      ...current,
+    ])
   }
   const addComment = (id: string) => {
     const body = comment[id]?.trim()
@@ -120,7 +159,7 @@ export function CommunityTab({ onOpenListing }: { onOpenListing: () => void }) {
             </div>
             {posts.map((post) => (
               <article className="feed-post" key={post.id}>
-                <strong>Vecino de tu barrio</strong>
+                <strong>{post.authorName || 'Vecino de tu barrio'}</strong>
                 <p>{post.body}</p>
                 {post.comments.map((body, index) => (
                   <p className="community-comment" key={`${post.id}-${index}`}>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 320" role="img" aria-label="Servicio y Reparación">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#38bdf8"/><stop offset="1" stop-color="#0284c7"/></linearGradient></defs>
+<rect width="420" height="320" rx="30" fill="url(#bg)"/>
+<circle cx="355" cy="35" r="100" fill="#fff" opacity=".13"/><circle cx="70" cy="292" r="120" fill="#fff" opacity=".12"/>
+<g fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M165 145l60 60M155 125a25 25 0 0 1 35 35l-20 20-35-35 20-20z"/>
+  <path d="M225 185l40 40a8 8 0 0 1-11 11l-40-40"/>
+  <path d="M245 110l-20 20M255 140l-20 20"/>
+</g>
+<text x="32" y="49" font-family="Arial,sans-serif" font-weight="700" font-size="22" fill="#fff">Oficio y Reparación</text>
+</svg>
+

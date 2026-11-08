@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
+import Image from 'next/image'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 
@@ -13,10 +14,10 @@ export function SplashScreen() {
     () => {
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-      gsap.from('.brand-mark--splash', {
+      gsap.from('.brand-logo-img--splash', {
         opacity: 0,
         scale: 0.72,
-        rotation: -12,
+        rotation: -8,
         duration: 0.65,
         ease: 'back.out(1.7)',
       })
@@ -34,15 +35,22 @@ export function SplashScreen() {
   )
 
   return (
-    <main ref={root} className="splash-screen" aria-label="Cargando NexoBarrio">
+    <main ref={root} className="splash-screen" aria-label="Cargando VECI">
       <div className="splash-orbit" aria-hidden="true">
         <span />
         <span />
         <span />
       </div>
-      <div className="brand-mark brand-mark--splash">N</div>
-      <h1>NexoBarrio</h1>
-      <p>Lo cercano nos conecta.</p>
+      <Image
+        src="/images/veci-logo.jpg"
+        alt="VECI"
+        width={84}
+        height={84}
+        className="brand-logo-img--splash"
+        priority
+      />
+      <h1>VECI</h1>
+      <p>Tu barrio, más cerca.</p>
     </main>
   )
 }

@@ -1,8 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import { Bookmark, MapPin, Star } from 'lucide-react'
-import { listingArt } from '@/lib/listing-art'
+import { Bookmark, MapPin, ShieldCheck, Star } from 'lucide-react'
+import { formatPriceLabel, resolveListingMedia } from '@/lib/listing-art'
 import type { ListingView } from '@/app/(frontend)/NeighborhoodApp'
 
 const labels: Record<string, string> = {
@@ -27,12 +27,14 @@ export function ListingCard({
   onSave: () => void
   onOpen: () => void
 }) {
+  const formattedPrice = formatPriceLabel(item.priceLabel, item.kind)
+
   return (
-    <article className="listing-card">
+    <article className={`listing-card listing-card--${item.kind}`}>
       <button className="listing-card__media" onClick={onOpen} aria-label={`Abrir ${item.title}`}>
         <Image
-          src={item.image || listingArt(item.title, item.kind)}
-          alt=""
+          src={resolveListingMedia(item.title, item.kind, item.image)}
+          alt={item.title}
           fill
           sizes="(max-width: 640px) 78vw, 300px"
         />
@@ -42,15 +44,26 @@ export function ListingCard({
       <div className="listing-card__body">
         <div className="listing-card__meta">
           <span>
-            <MapPin size={14} /> {item.distanceKm?.toFixed(1) ?? '—'} km
+            <MapPin size={14} /> {item.distanceKm?.toFixed(1) ?? '0.5'} km
           </span>
-          {item.availability === 'now' && <b>Disponible ahora</b>}
+          {item.availability === 'now' ? (
+            <b>⚡ Disponible ahora</b>
+          ) : item.approvalAuthor ? (
+            <b className="meta-verified">
+              <ShieldCheck size={13} /> Visto Bueno
+            </b>
+          ) : null}
         </div>
         <button className="card-title" onClick={onOpen}>
           {item.title}
         </button>
+        {item.description && (
+          <p className="card-description" onClick={onOpen}>
+            {item.description}
+          </p>
+        )}
         <div className="provider-line">
-          <span className="mini-avatar">{item.initials || 'NB'}</span>
+          <span className={`mini-avatar mini-avatar--${item.kind}`}>{item.initials || 'NB'}</span>
           <span>{item.providerName || 'Vecino de la zona'}</span>
           {item.rating && (
             <b>
@@ -59,7 +72,7 @@ export function ListingCard({
           )}
         </div>
         <div className="card-footer">
-          <strong>{item.priceLabel || 'Sin costo'}</strong>
+          <strong className={`price-badge price-badge--${item.kind}`}>{formattedPrice}</strong>
           <button
             className={saved ? 'is-saved' : ''}
             onClick={onSave}
