@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ArrowRight, Leaf, Recycle, ShieldCheck, Sparkles } from 'lucide-react'
+import { ArrowRight, Leaf, ShieldCheck, Sparkles, TreePine } from 'lucide-react'
 type SessionUser = {
   id: string
   displayName?: string
@@ -180,7 +180,7 @@ export function ProfileModal({
           publicar datos personales en el muro.
         </p>
       )}
-      {/* TARJETA INTERACTIVA: IMPACTO AMBIENTAL Y HUELLA VERDE */}
+      {/* TARJETA INTERACTIVA: IMPACTO REAL EN TU BARRIO */}
       <div
         className="profile-impact-card"
         onClick={onOpenImpact}
@@ -192,26 +192,26 @@ export function ProfileModal({
             onOpenImpact()
           }
         }}
-        aria-label="Abrir panel de impacto ambiental y economía circular"
+        aria-label="Ver el impacto ambiental y ahorro de tu barrio"
       >
         <div className="profile-impact-card__header">
           <span className="profile-impact-badge">
             <Leaf size={14} />
-            EcoBarrio & Huella Verde
+            Huella Verde & Ahorro
           </span>
-          <span className="profile-impact-ods">ODS 11 · 12</span>
+          <span className="profile-impact-sparkle">¡Mira el cambio! ✨</span>
         </div>
         <div className="profile-impact-card__body">
           <div className="profile-impact-icon">
-            <Recycle size={22} />
+            <TreePine size={22} />
           </div>
           <div className="profile-impact-info">
-            <strong>Impacto Ambiental & Circular</strong>
-            <p>Descubre el CO₂ evitado, herramientas compartidas y ahorro vecinal.</p>
+            <strong>¿Cuánto ayuda tu barrio al planeta?</strong>
+            <p>Descubre los árboles salvados, herramientas compartidas y plata ahorrada.</p>
           </div>
         </div>
         <div className="profile-impact-card__footer">
-          <span>Ver reporte de impacto ecológico</span>
+          <span>Ver el impacto de tu cuadra</span>
           <ArrowRight size={15} />
         </div>
       </div>
