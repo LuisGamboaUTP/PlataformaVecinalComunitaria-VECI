@@ -70,15 +70,20 @@ export function ExploreTab({
       </div>
       <div className="explore-tools">
         <div className="filter-pills">
-          {['all', 'service', 'product', 'barter', 'loan', 'skill', 'gift', 'help'].map((kind) => (
-            <button
-              key={kind}
-              className={activeKind === kind ? 'is-active' : ''}
-              onClick={() => setActiveKind(kind)}
-            >
-              {kind === 'all' ? 'Todos' : kindLabel[kind]}
-            </button>
-          ))}
+          {['all', 'service', 'product', 'barter', 'loan', 'skill', 'gift', 'need', 'help'].map(
+            (kind) => (
+              <button
+                key={kind}
+                type="button"
+                data-kind={kind}
+                className={`filter-pill filter-pill--${kind} ${activeKind === kind ? 'is-active' : ''}`}
+                onClick={() => setActiveKind(kind)}
+              >
+                {kind !== 'all' && <i className={`kind-dot kind-dot--${kind}`} aria-hidden="true" />}
+                {kind === 'all' ? 'Todos' : kindLabel[kind]}
+              </button>
+            ),
+          )}
         </div>
         <label className="filter-button">
           <ListFilter size={18} /> Ordenar{' '}

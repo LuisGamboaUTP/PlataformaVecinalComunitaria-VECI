@@ -373,6 +373,24 @@ html[data-simple-view='true'] button, html[data-simple-view='true'] a, html[data
     serif;
   flex: 0 0 auto;
 }
+.brand-logo-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex: 0 0 auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: block;
+}
+.brand-logo-img--splash {
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  object-fit: cover;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.32);
+  display: block;
+  z-index: 2;
+}
 .brand-mark--splash {
   width: 70px;
   height: 70px;
@@ -2563,11 +2581,12 @@ html[data-simple-view='true'] button, html[data-simple-view='true'] a, html[data
     gap: 6px;
     font-size: 16px;
   }
-  .topbar__brand .brand-mark {
+  .topbar__brand .brand-mark,
+  .topbar__brand .brand-logo-img {
     width: 32px;
     height: 32px;
     font-size: 17px;
-    border-radius: 9px 9px 9px 3px;
+    border-radius: 8px;
   }
   .zone-button {
     grid-area: zone;
@@ -3242,4 +3261,855 @@ html[data-simple-view='true'] button, html[data-simple-view='true'] a, html[data
   background: transparent !important;
   border: none !important;
 }
+
+.leaflet-div-icon--pill {
+  width: max-content !important;
+  height: auto !important;
+}
+
+/* =========================================================
+   SISTEMA DE COLORES POR CATEGORÍA + MARCADORES Y TARJETAS INTUITIVAS
+   ========================================================= */
+:root {
+  --cat-service: #0f766e;
+  --cat-service-soft: #ccfbf1;
+  --cat-product: #1d4ed8;
+  --cat-product-soft: #dbeafe;
+  --cat-skill: #7c3aed;
+  --cat-skill-soft: #ede9fe;
+  --cat-barter: #ea580c;
+  --cat-barter-soft: #ffedd5;
+  --cat-loan: #0284c7;
+  --cat-loan-soft: #e0f2fe;
+  --cat-gift: #db2777;
+  --cat-gift-soft: #fce7f3;
+  --cat-need: #d97706;
+  --cat-need-soft: #fef3c7;
+  --cat-help: #dc2626;
+  --cat-help-soft: #fee2e2;
+}
+
+/* 1. Puntos de color e indicadores en las píldoras de filtro */
+.kind-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.kind-dot--service { background: var(--cat-service); }
+.kind-dot--product { background: var(--cat-product); }
+.kind-dot--skill   { background: var(--cat-skill); }
+.kind-dot--barter  { background: var(--cat-barter); }
+.kind-dot--loan    { background: var(--cat-loan); }
+.kind-dot--gift    { background: var(--cat-gift); }
+.kind-dot--need    { background: var(--cat-need); }
+.kind-dot--help    { background: var(--cat-help); }
+
+.filter-pills .filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  transition: all 0.18s ease;
+}
+
+.filter-pills .filter-pill--service.is-active { background: var(--cat-service); border-color: var(--cat-service); color: #fff; }
+.filter-pills .filter-pill--product.is-active { background: var(--cat-product); border-color: var(--cat-product); color: #fff; }
+.filter-pills .filter-pill--skill.is-active   { background: var(--cat-skill);   border-color: var(--cat-skill);   color: #fff; }
+.filter-pills .filter-pill--barter.is-active  { background: var(--cat-barter);  border-color: var(--cat-barter);  color: #fff; }
+.filter-pills .filter-pill--loan.is-active    { background: var(--cat-loan);    border-color: var(--cat-loan);    color: #fff; }
+.filter-pills .filter-pill--gift.is-active    { background: var(--cat-gift);    border-color: var(--cat-gift);    color: #fff; }
+.filter-pills .filter-pill--need.is-active    { background: var(--cat-need);    border-color: var(--cat-need);    color: #fff; }
+.filter-pills .filter-pill--help.is-active    { background: var(--cat-help);    border-color: var(--cat-help);    color: #fff; }
+
+.filter-pills .filter-pill.is-active .kind-dot {
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+/* 2. Pines de Gota 3D (Teardrop Pins) compactos por color de categoría */
+.leaflet-div-icon--teardrop {
+  background: transparent !important;
+  border: none !important;
+}
+
+.teardrop-pin {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, 0.22));
+}
+
+.teardrop-pin--demo {
+  position: absolute;
+  z-index: 4;
+  transform: translate(-50%, -88%);
+}
+
+.teardrop-pin:hover,
+.teardrop-pin.is-selected {
+  transform: translateY(-4px) scale(1.12);
+  z-index: 12;
+}
+
+.teardrop-pin--demo:hover,
+.teardrop-pin--demo.is-selected {
+  transform: translate(-50%, -92%) scale(1.12);
+  z-index: 12;
+}
+
+.teardrop-pin__svg {
+  display: block;
+  width: 42px;
+  height: 52px;
+}
+
+.teardrop-pin__badge {
+  margin-top: -6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+}
+
+.teardrop-pin--service .teardrop-pin__badge { background: var(--cat-service); }
+.teardrop-pin--product .teardrop-pin__badge { background: var(--cat-product); }
+.teardrop-pin--skill   .teardrop-pin__badge { background: var(--cat-skill); }
+.teardrop-pin--barter  .teardrop-pin__badge { background: var(--cat-barter); }
+.teardrop-pin--loan    .teardrop-pin__badge { background: var(--cat-loan); }
+.teardrop-pin--gift    .teardrop-pin__badge { background: var(--cat-gift); }
+.teardrop-pin--need    .teardrop-pin__badge { background: var(--cat-need); }
+.teardrop-pin--help    .teardrop-pin__badge { background: var(--cat-help); }
+
+/* Minitarjeta flotante al tocar un pin (muestra título + descripción sin tapar el mapa) */
+.map-pin-card {
+  position: absolute;
+  z-index: 15;
+  left: 16px;
+  bottom: 42px;
+  width: min(350px, calc(100% - 82px));
+  display: grid;
+  gap: 6px;
+  padding: 13px 15px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1.5px solid var(--line);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+.map-pin-card__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-pin-card__top .kind-tag {
+  position: static;
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+.map-pin-card__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.map-pin-card__title {
+  font-size: 15px;
+  font-weight: 850;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+.map-pin-card__desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.38;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.map-pin-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.map-pin-card__actions .primary-button {
+  min-height: 36px;
+  padding: 0 13px;
+  font-size: 12.5px;
+  border-radius: 10px;
+}
+
+/* 3. Colores distintivos en etiquetas kind-tag, tarjetas y avatares */
+.kind-tag--service { background: var(--cat-service); color: #ffffff; }
+.kind-tag--product { background: var(--cat-product); color: #ffffff; }
+.kind-tag--skill   { background: var(--cat-skill);   color: #ffffff; }
+.kind-tag--barter  { background: var(--cat-barter);  color: #ffffff; }
+.kind-tag--loan    { background: var(--cat-loan);    color: #ffffff; }
+.kind-tag--gift    { background: var(--cat-gift);    color: #ffffff; }
+.kind-tag--need    { background: var(--cat-need);    color: #ffffff; }
+.kind-tag--help    { background: var(--cat-help);    color: #ffffff; }
+
+.listing-card--service { border-top: 3px solid var(--cat-service); }
+.listing-card--product { border-top: 3px solid var(--cat-product); }
+.listing-card--skill   { border-top: 3px solid var(--cat-skill); }
+.listing-card--barter  { border-top: 3px solid var(--cat-barter); }
+.listing-card--loan    { border-top: 3px solid var(--cat-loan); }
+.listing-card--gift    { border-top: 3px solid var(--cat-gift); }
+.listing-card--need    { border-top: 3px solid var(--cat-need); }
+.listing-card--help    { border-top: 3px solid var(--cat-help); }
+
+.mini-avatar--service { background: var(--cat-service); }
+.mini-avatar--product { background: var(--cat-product); }
+.mini-avatar--skill   { background: var(--cat-skill); }
+.mini-avatar--barter  { background: var(--cat-barter); }
+.mini-avatar--loan    { background: var(--cat-loan); }
+.mini-avatar--gift    { background: var(--cat-gift); }
+.mini-avatar--need    { background: var(--cat-need); }
+.mini-avatar--help    { background: var(--cat-help); }
+
+.price-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.price-badge--service { background: var(--cat-service-soft); color: var(--cat-service); }
+.price-badge--product { background: var(--cat-product-soft); color: var(--cat-product); }
+.price-badge--skill   { background: var(--cat-skill-soft);   color: var(--cat-skill); }
+.price-badge--barter  { background: var(--cat-barter-soft);  color: var(--cat-barter); }
+.price-badge--loan    { background: var(--cat-loan-soft);    color: var(--cat-loan); }
+.price-badge--gift    { background: var(--cat-gift-soft);    color: var(--cat-gift); }
+.price-badge--need    { background: var(--cat-need-soft);    color: var(--cat-need); }
+.price-badge--help    { background: var(--cat-help-soft);    color: var(--cat-help); }
+
+/* 4. Descripción visible en las tarjetas para que se entienda cada publicación */
+.card-title {
+  min-height: unset;
+  margin: 2px 0 4px;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.card-description {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  line-height: 1.38;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.meta-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--cat-service);
+  font-weight: 800;
+}
+
+.sheet-heading__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sheet-toggle-btn {
+  display: none;
+}
+
+/* 5. Ajuste responsive en móvil para que las tarjetas del mapa muestren título + descripción sin cortarse */
+@media (max-width: 960px) {
+  .sheet-toggle-btn {
+    display: inline-flex;
+  }
+
+  .discovery-sheet {
+    height: 252px;
+  }
+
+  .discovery-sheet .filter-pills {
+    margin: 8px 0;
+  }
+
+  .discovery-sheet .listing-strip {
+    margin-top: 6px;
+  }
+
+  .discovery-sheet .listing-strip .listing-card {
+    min-width: 285px;
+    max-width: 310px;
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .discovery-sheet .listing-strip .listing-card__media {
+    height: 100%;
+    min-height: 112px;
+  }
+
+  .discovery-sheet .listing-strip .listing-card__media .kind-tag {
+    top: 6px;
+    left: 6px;
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .discovery-sheet .listing-strip .listing-card__body {
+    padding: 9px 11px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .discovery-sheet .listing-strip .card-title {
+    font-size: 14px;
+    margin: 1px 0 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .discovery-sheet .listing-strip .card-description {
+    font-size: 11.5px;
+    margin: 0 0 5px;
+    -webkit-line-clamp: 2;
+  }
+
+  .discovery-sheet .listing-strip .card-footer {
+    margin-top: 4px;
+    padding-top: 5px;
+  }
+
+  .my-location {
+    bottom: 262px;
+  }
+
+  .map-pin-card {
+    left: 12px;
+    right: 66px;
+    bottom: 260px;
+    width: auto;
+    padding: 11px 13px;
+  }
+
+  .geo-notice {
+    bottom: 314px;
+  }
+
+  .map-license {
+    bottom: 258px;
+  }
+}
+
+@media (max-width: 390px) {
+  .discovery-sheet {
+    height: 238px;
+  }
+
+  .teardrop-pin__svg {
+    width: 38px;
+    height: 47px;
+  }
+
+  .map-pin-card {
+    left: 10px;
+    right: 56px;
+    bottom: 245px;
+    padding: 10px 12px;
+  }
+
+  .my-location {
+    bottom: 248px;
+  }
+
+  .geo-notice {
+    bottom: 296px;
+  }
+}
+
+/* ==========================================================================
+   TOUR ONBOARDING Y UX INTUITIVA PARA PERSONAS NO TÉCNICAS
+   ========================================================================== */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  animation: tourFadeIn 0.28s ease-out;
+}
+
+@keyframes tourFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tour-modal-card {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: tourSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tourSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tour-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #f1f5f9;
+  background: #fafafa;
+}
+
+.tour-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.tour-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.tour-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tour-audio-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tour-audio-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.tour-audio-btn.is-active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+  animation: pulseAudio 1.5s infinite;
+}
+
+@keyframes pulseAudio {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(15, 118, 110, 0);
+  }
+}
+
+.tour-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tour-close-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.tour-body {
+  padding: 24px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.tour-icon-bubble {
+  width: 68px;
+  height: 68px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  border: 2px solid;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.1);
+}
+
+.tour-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.tour-summary {
+  margin: 0 0 14px;
+  font-size: 14.5px;
+  color: #475569;
+  line-height: 1.5;
+  max-width: 440px;
+}
+
+.tour-detail-box {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px dashed;
+  text-align: left;
+  font-size: 13.5px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.tour-color-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tour-color-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  text-align: left;
+}
+
+.tour-color-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px white;
+}
+
+.tour-color-info strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.tour-color-info small {
+  display: block;
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.tour-trust-demo {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.trust-pill-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  font-size: 13px;
+  color: #065f46;
+}
+
+.tour-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #f1f5f9;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tour-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tour-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #cbd5e1;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.tour-dot.is-active {
+  width: 24px;
+  background: #0f766e;
+}
+
+.tour-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tour-btn-prev {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+.tour-btn-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 750;
+  color: #ffffff;
+  border: 0;
+  border-radius: 9999px;
+  box-shadow: 0 4px 14px -3px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.tour-btn-next:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+/* ==========================================================================
+   UI HELPER FLOTANTE EN EL MAPA PARA PERSONAS NO TÉCNICAS
+   ========================================================================== */
+.map-intuitive-bar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  box-shadow: 0 6px 20px -4px rgba(15, 23, 42, 0.14);
+}
+
+.map-intuitive-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #1e293b;
+  font-weight: 650;
+}
+
+.map-intuitive-hint strong {
+  color: #0f766e;
+}
+
+.map-intuitive-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.map-intuitive-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f766e;
+  font-size: 11.5px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.map-intuitive-btn:hover {
+  background: #f0fdfa;
+  border-color: #0f766e;
+}
+
+.map-legend-drawer {
+  position: absolute;
+  top: 60px;
+  left: 14px;
+  right: 14px;
+  z-index: 999;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border-radius: 18px;
+  border: 1px solid #cbd5e1;
+  padding: 12px 14px;
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.18);
+  animation: tourSlideUp 0.22s ease-out;
+}
+
+.map-legend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 750;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.map-legend-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.map-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.map-legend-chip:hover {
+  transform: scale(1.03);
+}
+
+.map-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+@media (max-width: 640px) {
+  .tour-body {
+    padding: 18px 16px 14px;
+  }
+  .tour-title {
+    font-size: 18px;
+  }
+  .tour-color-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .map-intuitive-bar {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    padding: 6px 10px;
+  }
+  .map-intuitive-hint {
+    font-size: 11.5px;
+  }
+  .map-intuitive-hint span.desktop-only {
+    display: none;
+  }
+}
+
+
 

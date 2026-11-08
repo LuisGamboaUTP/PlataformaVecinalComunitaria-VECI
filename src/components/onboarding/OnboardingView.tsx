@@ -101,8 +101,8 @@ export function OnboardingView({
       </div>
       <section className="onboarding__copy">
         <div className="brand-lockup">
-          <span className="brand-mark">N</span>
-          <span>NexoBarrio</span>
+          <img src="/images/veci-logo.jpg" alt="VECI" className="brand-logo-img" />
+          <span>VECI</span>
         </div>
         <span className="eyebrow">Paso {step + 1} de 3</span>
         <h1>{steps[step].title}</h1>

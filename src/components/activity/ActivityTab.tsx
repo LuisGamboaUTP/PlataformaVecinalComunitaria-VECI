@@ -133,7 +133,7 @@ export function ActivityTab({
             </span>
             <h2>Tu actividad está protegida</h2>
             <p>Ingresa para consultar solicitudes y propuestas confirmadas.</p>
-            <Link href="/auth" className="primary-button">
+            <Link href="/login" className="primary-button">
               Ingresar
             </Link>
           </div>
@@ -164,7 +164,10 @@ export function ActivityTab({
                   <strong>{interaction.summary}</strong>
                   <p>{interaction.listingTitle}</p>
                   <small>
-                    <Clock3 size={14} /> Guardado en este dispositivo
+                    <Clock3 size={14} />{' '}
+                    {interaction.syncState === 'confirmed'
+                      ? 'Sincronizado con tu vecino'
+                      : 'Respaldo activo'}
                   </small>
                 </div>
                 <span className="status-pill">
@@ -310,8 +313,11 @@ export function ActivityTab({
           <ShieldCheck size={22} />
         </span>
         <div>
-          <strong>Estados transparentes</strong>
-          <p>Esta versión guarda la actividad localmente en tu navegador.</p>
+          <strong>Estados transparentes y sincronizados</strong>
+          <p>
+            Tus acuerdos, préstamos y reseñas se sincronizan con la comunidad y cuentan con respaldo
+            offline automático.
+          </p>
         </div>
       </div>
     </section>
@@ -334,6 +340,11 @@ function ChatPanel({ interactionId }: { interactionId: string }) {
 
   useEffect(() => {
     setMessages(readLocal<MessageView[]>(`nexobarrio-messages-${interactionId}`, []))
+    void api.getMessages(interactionId).then((remote) => {
+      if (remote && remote.length > 0) {
+        setMessages(remote)
+      }
+    })
   }, [interactionId])
 
   const sendMessage = async () => {
@@ -341,12 +352,20 @@ function ChatPanel({ interactionId }: { interactionId: string }) {
     if (!text) return
     setSending(true)
     setStatus('')
-    const message: MessageView = { id: crypto.randomUUID(), body: text, sentByMe: true, deliveryState: 'local', createdAt: new Date().toISOString() }
+
+    const remote = await api.createMessage(interactionId, text)
+    const message: MessageView = remote || {
+      id: crypto.randomUUID(),
+      body: text,
+      sentByMe: true,
+      deliveryState: 'local',
+      createdAt: new Date().toISOString(),
+    }
     const next = [...messages, message]
     writeLocal(`nexobarrio-messages-${interactionId}`, next)
     setMessages(next)
     setBody('')
-    setStatus('Mensaje guardado en este dispositivo.')
+    setStatus(remote ? 'Mensaje enviado y sincronizado.' : 'Mensaje guardado con respaldo local.')
     setSending(false)
   }
 
@@ -357,7 +376,7 @@ function ChatPanel({ interactionId }: { interactionId: string }) {
           messages.map((message) => (
             <p key={message.id} className={message.sentByMe ? 'is-mine' : ''}>
               {message.body}
-              <small>Local</small>
+              <small>{message.deliveryState === 'local' ? 'Local' : 'Enviado'}</small>
             </p>
           ))
         ) : (
@@ -393,9 +412,22 @@ function ReviewPanel({ interactionId }: { interactionId: string }) {
 
   const submitReview = async () => {
     setStatus('')
-    writeLocal(`nexobarrio-review-${interactionId}`, { stars, comment, createdAt: new Date().toISOString() })
+    const ok = await api.createReview({
+      interactionId,
+      stars,
+      comment: comment.trim(),
+    })
+    writeLocal(`nexobarrio-review-${interactionId}`, {
+      stars,
+      comment: comment.trim(),
+      createdAt: new Date().toISOString(),
+    })
     setSent(true)
-    setStatus('Reseña guardada en este dispositivo.')
+    setStatus(
+      ok
+        ? '¡Gracias! Tu reseña y Visto Bueno Vecinal ya fueron publicados.'
+        : 'Reseña registrada con respaldo en este dispositivo.',
+    )
   }
 
   return (

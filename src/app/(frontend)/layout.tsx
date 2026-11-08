@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './styles.css'
 
 export const metadata: Metadata = {
-  title: 'NexoBarrio',
-  description: 'Productos, oficios, recursos y ayuda cerca de ti.',
+  title: 'VECI · Tu Barrio Más Cerca',
+  description: 'Plataforma comunitaria vecinal para servicios, préstamos y ayuda mutua.',
   manifest: '/manifest.webmanifest',
   icons: { icon: '/favicon.svg' },
 }

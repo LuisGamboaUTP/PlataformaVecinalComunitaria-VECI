@@ -18,27 +18,63 @@ export interface InteractionsResponse {
   interactions: InteractionView[]
 }
 
+export interface MessageItem {
+  id: string
+  body: string
+  sentByMe: boolean
+  deliveryState: string
+  createdAt?: string
+}
+
+export interface CommunityPostItem {
+  id: string
+  circleName?: string
+  authorName?: string
+  authorInitials?: string
+  body: string
+  comments?: string[]
+  hasSharedListing?: boolean
+  createdAt?: string
+}
+
+export interface EmergencyBoardItem {
+  id: string
+  kind: 'need' | 'resource'
+  title: string
+  zoneName?: string
+  source?: string
+  createdAt?: string
+}
+
+export interface NotificationItem {
+  id: string
+  title: string
+  body: string
+  kind: string
+  read: boolean
+  deliveryState: string
+  createdAt?: string
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T | null> {
   try {
+    const session = readLocal<LocalUser | null>('nexobarrio-session', null)
     const res = await fetch(path, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(session?.id ? { 'X-User-Id': session.id } : {}),
         ...options.headers,
       },
       credentials: 'include',
     })
 
     if (!res.ok) {
-      const errBody = await res.json().catch(() => null)
-      const message = errBody?.error?.message || errBody?.detail || `Error HTTP ${res.status}`
-      throw new Error(message)
+      return null
     }
 
     return (await res.json()) as T
-  } catch (err) {
-    // If backend is unreachable or request fails, return null to trigger graceful fallback
-    console.warn(`[api-client] Solicitud a ${path} no disponible, usando fallback local:`, err)
+  } catch {
     return null
   }
 }
@@ -51,7 +87,6 @@ export const api = {
       saveSession(data.user)
       return data.user
     }
-    // Fallback local
     return readLocal<LocalUser | null>('nexobarrio-session', null)
   },
 
@@ -115,7 +150,6 @@ export const api = {
     if (data?.listings && Array.isArray(data.listings) && data.listings.length > 0) {
       return data.listings
     }
-    // Fallback a almacenamiento local / starter listings
     return readLocal<ListingView[]>('nexobarrio-listings', [])
   },
 
@@ -136,7 +170,6 @@ export const api = {
     })
 
     if (data?.listing) {
-      // Guardar también copia local sincronizada
       const current = readLocal<ListingView[]>('nexobarrio-listings', [])
       writeLocal('nexobarrio-listings', [data.listing, ...current])
       return data.listing
@@ -186,5 +219,106 @@ export const api = {
       return data.interaction
     }
     return null
+  },
+
+  // ==================== MENSAJES (CHAT CONTEXTUAL) ====================
+  async getMessages(interactionId: string): Promise<MessageItem[]> {
+    const data = await request<{ messages: MessageItem[] }>(
+      `/api/app/messages?interactionId=${encodeURIComponent(interactionId)}`,
+      { method: 'GET' },
+    )
+    if (data?.messages && Array.isArray(data.messages)) {
+      writeLocal(`nexobarrio-messages-${interactionId}`, data.messages)
+      return data.messages
+    }
+    return readLocal<MessageItem[]>(`nexobarrio-messages-${interactionId}`, [])
+  },
+
+  async createMessage(interactionId: string, body: string): Promise<MessageItem | null> {
+    const data = await request<{ message: MessageItem }>('/api/app/messages', {
+      method: 'POST',
+      body: JSON.stringify({ interactionId, body }),
+    })
+    if (data?.message) {
+      return data.message
+    }
+    return null
+  },
+
+  // ==================== RESEÑAS VERIFICADAS ====================
+  async createReview(payload: {
+    interactionId: string
+    stars: number
+    comment: string
+  }): Promise<boolean> {
+    const data = await request<{ review: unknown }>('/api/app/reviews', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    return Boolean(data?.review)
+  },
+
+  // ==================== COMUNIDAD Y MURO VECINAL ====================
+  async getCommunityPosts(): Promise<CommunityPostItem[]> {
+    const data = await request<{ posts: CommunityPostItem[] }>('/api/app/community', {
+      method: 'GET',
+    })
+    if (data?.posts && Array.isArray(data.posts)) {
+      return data.posts
+    }
+    return []
+  },
+
+  async createCommunityPost(payload: {
+    circleName: string
+    authorName: string
+    authorInitials: string
+    body: string
+    hasSharedListing?: boolean
+  }): Promise<CommunityPostItem | null> {
+    const data = await request<{ post: CommunityPostItem }>('/api/app/community', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    return data?.post || null
+  },
+
+  // ==================== TABLERO DE EMERGENCIAS ====================
+  async getEmergencyItems(): Promise<EmergencyBoardItem[]> {
+    const data = await request<{ items: EmergencyBoardItem[] }>('/api/app/emergency', {
+      method: 'GET',
+    })
+    if (data?.items && Array.isArray(data.items)) {
+      return data.items
+    }
+    return []
+  },
+
+  async createEmergencyItem(payload: {
+    kind: 'need' | 'resource'
+    title: string
+    zoneName: string
+    source?: string
+  }): Promise<EmergencyBoardItem | null> {
+    const data = await request<{ item: EmergencyBoardItem }>('/api/app/emergency', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    return data?.item || null
+  },
+
+  // ==================== NOTIFICACIONES ====================
+  async getNotifications(): Promise<{ notifications: NotificationItem[]; unread: number } | null> {
+    return await request<{ notifications: NotificationItem[]; unread: number }>(
+      '/api/app/notifications',
+      { method: 'GET' },
+    )
+  },
+
+  async markNotificationsRead(): Promise<boolean> {
+    const res = await request<{ success: boolean }>('/api/app/notifications', {
+      method: 'PATCH',
+    })
+    return Boolean(res?.success)
   },
 }

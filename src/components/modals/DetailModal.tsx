@@ -13,7 +13,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
-import { listingArt } from '@/lib/listing-art'
+import { formatPriceLabel, resolveListingMedia } from '@/lib/listing-art'
 import { ProviderProfileModal } from '@/components/modals/ProviderProfileModal'
 import { api } from '@/lib/api-client'
 import type { ListingView, InteractionView } from '@/app/(frontend)/NeighborhoodApp'
@@ -153,7 +153,7 @@ export function DetailModal({
     <div className="detail-view">
       <div className="detail-media">
         <Image
-          src={item.image || listingArt(item.title, item.kind)}
+          src={resolveListingMedia(item.title, item.kind, item.image)}
           alt={`Imagen de ${item.title}`}
           fill
           sizes="720px"
@@ -207,7 +207,7 @@ export function DetailModal({
 
         <div className="detail-stats">
           <span>
-            <strong>{item.priceLabel || 'Sin costo'}</strong>
+            <strong>{formatPriceLabel(item.priceLabel, item.kind)}</strong>
             <small>Costo orientativo</small>
           </span>
           <span>
@@ -287,7 +287,7 @@ export function DetailModal({
             {requestMessage && (
               <p className="form-feedback" role="alert">
                 {requestMessage}{' '}
-                {requestMessage.includes('sesión') && <Link href="/auth">Ingresar</Link>}
+                {requestMessage.includes('sesión') && <Link href="/login">Ingresar</Link>}
               </p>
             )}
             <button
