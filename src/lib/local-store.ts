@@ -18,6 +18,8 @@ export type LocalUser = {
   zoneName: string
   email: string
   verificationStatus: string
+  docType?: 'dni' | 'ce' | 'pasaporte' | string
+  docNumber?: string
 }
 
 export function currentUser(): LocalUser | null {

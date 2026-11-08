@@ -7,6 +7,8 @@ type SessionUser = {
   displayName?: string
   zoneName?: string
   verificationStatus?: string
+  docType?: string
+  docNumber?: string
 }
 
 export function ProfileModal({
@@ -64,7 +66,11 @@ export function ProfileModal({
       <span className="verification-chip">
         <ShieldCheck size={16} />{' '}
         {user?.verificationStatus === 'verified'
-          ? 'Identidad verificada por proceso real'
+          ? user?.docType === 'ce'
+            ? 'Vecino verificado (Carnet de Extranjería)'
+            : user?.docType === 'pasaporte'
+              ? 'Vecino verificado (Pasaporte)'
+              : 'Vecino verificado (DNI)'
           : 'Identidad no verificada'}
       </span>
       <div className="profile-metrics">

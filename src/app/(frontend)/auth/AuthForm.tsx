@@ -2,10 +2,11 @@
 
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Eye, EyeOff, LockKeyhole, MapPin, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, IdCard, LockKeyhole, MapPin, ShieldCheck } from 'lucide-react'
 import { readLocal, saveSession, writeLocal, type LocalUser } from '@/lib/local-store'
 
 type LocalAccount = { user: LocalUser; passwordDigest: string }
+
 async function digest(value: string) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
   return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('')
@@ -19,6 +20,7 @@ export function AuthForm({
   switchable?: boolean
 }) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode)
+  const [docType, setDocType] = useState<'dni' | 'ce' | 'pasaporte'>('dni')
   const [visible, setVisible] = useState(false)
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
@@ -29,26 +31,58 @@ export function AuthForm({
     setError('')
     const formData = new FormData(event.currentTarget)
     const data = Object.fromEntries(formData.entries())
+
     try {
-      const email = String(data.email || '').trim().toLowerCase()
       const passwordDigest = await digest(String(data.password || ''))
       const accounts = readLocal<LocalAccount[]>('nexobarrio-accounts', [])
+
       if (mode === 'register') {
+        const email = String(data.email || '').trim().toLowerCase()
+        const docNumber = String(data.docNumber || '').trim().toUpperCase()
+
         if (accounts.some((account) => account.user.email === email)) {
-          setError('Ya existe una cuenta local con ese correo.')
+          setError('Ya existe una cuenta con ese correo en este dispositivo.')
           return
         }
-        const user: LocalUser = { id: crypto.randomUUID(), email, displayName: String(data.displayName || '').trim(), zoneName: String(data.zoneName || 'Centro Cívico'), verificationStatus: 'unverified' }
+
+        if (docNumber && accounts.some((account) => account.user.docNumber?.toUpperCase() === docNumber)) {
+          setError('Ya existe una cuenta registrada con ese número de documento.')
+          return
+        }
+
+        if (docType === 'dni' && docNumber && !/^\d{8}$/.test(docNumber)) {
+          setError('El DNI debe contener exactamente 8 dígitos numéricos.')
+          return
+        }
+
+        const user: LocalUser = {
+          id: crypto.randomUUID(),
+          email,
+          displayName: String(data.displayName || '').trim(),
+          zoneName: String(data.zoneName || 'Centro Cívico'),
+          verificationStatus: docNumber ? 'verified' : 'unverified',
+          docType,
+          docNumber: docNumber || undefined,
+        }
+
         writeLocal('nexobarrio-accounts', [...accounts, { user, passwordDigest }])
         saveSession(user)
       } else {
-        const account = accounts.find((entry) => entry.user.email === email && entry.passwordDigest === passwordDigest)
+        const identifier = String(data.identifier || data.email || '').trim().toLowerCase()
+        const account = accounts.find(
+          (entry) =>
+            (entry.user.email.toLowerCase() === identifier ||
+              (entry.user.docNumber && entry.user.docNumber.toLowerCase() === identifier)) &&
+            entry.passwordDigest === passwordDigest,
+        )
+
         if (!account) {
-          setError('Correo o contraseña incorrectos en este dispositivo.')
+          setError('Correo, documento o contraseña incorrectos en este dispositivo.')
           return
         }
         saveSession(account.user)
       }
+
       window.location.assign('/')
     } catch {
       setError('No se pudo guardar el perfil local.')
@@ -60,7 +94,15 @@ export function AuthForm({
   const loginDemo = async (provider = false) => {
     setPending(true)
     setError('')
-    saveSession({ id: provider ? 'demo-carlos' : 'demo-lucia', displayName: provider ? 'Carlos Mendoza' : 'Lucía', zoneName: 'Centro Cívico', email: provider ? 'proveedor.demo@nexobarrio.test' : 'demo@nexobarrio.test', verificationStatus: 'unverified' })
+    saveSession({
+      id: provider ? 'demo-carlos' : 'demo-lucia',
+      displayName: provider ? 'Carlos Mendoza' : 'Lucía',
+      zoneName: 'Centro Cívico',
+      email: provider ? 'proveedor.demo@nexobarrio.test' : 'demo@nexobarrio.test',
+      verificationStatus: 'verified',
+      docType: provider ? 'dni' : 'ce',
+      docNumber: provider ? '44556677' : '001234567',
+    })
     window.location.assign('/')
   }
 
@@ -96,6 +138,7 @@ export function AuthForm({
               <span>NexoBarrio</span>
             </div>
           </div>
+
           {switchable && (
             <div className="segmented" role="tablist" aria-label="Acceso">
               <button
@@ -123,7 +166,7 @@ export function AuthForm({
             <p>
               {mode === 'login'
                 ? 'Tus guardados y conversaciones te esperan.'
-                : 'Tu perfil se guardará solo en este navegador.'}
+                : 'Identidad protegida y validada para mayor confianza en el barrio.'}
             </p>
           </div>
 
@@ -139,6 +182,7 @@ export function AuthForm({
                     required
                   />
                 </label>
+
                 <label>
                   Barrio o zona
                   <span className="input-with-icon">
@@ -152,18 +196,56 @@ export function AuthForm({
                     </select>
                   </span>
                 </label>
+
+                <div className="form-row">
+                  <label>
+                    Tipo de documento
+                    <span className="input-with-icon">
+                      <IdCard size={18} />
+                      <select
+                        name="docType"
+                        value={docType}
+                        onChange={(e) => setDocType(e.target.value as 'dni' | 'ce' | 'pasaporte')}
+                      >
+                        <option value="dni">DNI (Perú)</option>
+                        <option value="ce">Carnet Extranjería (CE)</option>
+                        <option value="pasaporte">Pasaporte</option>
+                      </select>
+                    </span>
+                  </label>
+                  <label>
+                    N° de documento
+                    <input
+                      name="docNumber"
+                      type="text"
+                      placeholder={
+                        docType === 'dni'
+                          ? '8 dígitos (12345678)'
+                          : docType === 'ce'
+                            ? '9 dígitos / letras'
+                            : 'N° de pasaporte'
+                      }
+                      maxLength={docType === 'dni' ? 8 : 16}
+                      inputMode={docType === 'dni' ? 'numeric' : 'text'}
+                      autoComplete="off"
+                      required
+                    />
+                  </label>
+                </div>
               </>
             )}
+
             <label>
-              Correo
+              {mode === 'login' ? 'Correo o N° de documento (DNI / CE)' : 'Correo electrónico'}
               <input
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="tu@correo.com"
+                name={mode === 'login' ? 'identifier' : 'email'}
+                type={mode === 'login' ? 'text' : 'email'}
+                autoComplete={mode === 'login' ? 'username' : 'email'}
+                placeholder={mode === 'login' ? 'tu@correo.com o tu DNI / CE' : 'tu@correo.com'}
                 required
               />
             </label>
+
             <label>
               Contraseña
               <span className="input-with-icon">
@@ -184,15 +266,18 @@ export function AuthForm({
                 </button>
               </span>
             </label>
+
             {error && (
               <p className="form-error" role="alert">
                 {error}
               </p>
             )}
+
             <button className="primary-button primary-button--wide" disabled={pending}>
               {pending ? 'Procesando…' : mode === 'login' ? 'Ingresar al barrio' : 'Crear cuenta'}
             </button>
           </form>
+
           {mode === 'login' ? (
             <p className="auth-links">
               <Link href="/registro">Crear cuenta</Link> ·{' '}
@@ -211,10 +296,10 @@ export function AuthForm({
             </div>
             <span>
               <button type="button" onClick={() => loginDemo(false)} disabled={pending}>
-                Entrar como Vecina (Lucía)
+                Entrar como Vecina (Lucía — CE)
               </button>
               <button type="button" onClick={() => loginDemo(true)} disabled={pending}>
-                Entrar como Técnico (Carlos)
+                Entrar como Técnico (Carlos — DNI)
               </button>
             </span>
           </div>
@@ -222,7 +307,7 @@ export function AuthForm({
           <div className="prototype-note">
             <ShieldCheck size={18} />
             <p>
-              <strong>Versión frontend:</strong> los datos no se comparten con otras personas. Evita ingresar información sensible.
+              <strong>Confianza vecinal:</strong> tu documento solo se utiliza para validar identidad y proteger a la comunidad. Nunca se comparte públicamente.
             </p>
           </div>
         </div>
