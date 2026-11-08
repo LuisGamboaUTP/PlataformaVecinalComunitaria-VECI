@@ -39,7 +39,7 @@ import {
   Wrench,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { SplashScreen } from '@/components/onboarding/SplashScreen'
 import { OnboardingView } from '@/components/onboarding/OnboardingView'
 import { InAppTourModal } from '@/components/onboarding/InAppTourModal'
@@ -181,6 +181,28 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
   const [isOnline, setIsOnline] = useState(true)
   const signedInName = sessionUser?.displayName
 
+  const completeSplash = useCallback(() => {
+    let hasOnboarded = false
+    try {
+      hasOnboarded = Boolean(window.localStorage.getItem('nexobarrio-onboarded'))
+    } catch {
+      // The intro must still finish when browser storage is unavailable.
+    }
+    setOnboarding(!hasOnboarded)
+    if (hasOnboarded) {
+      const queryParams = new URLSearchParams(window.location.search)
+      let wantsTour = queryParams.get('tour') === '1'
+      try {
+        wantsTour ||= window.localStorage.getItem('nexobarrio-show-tour') === '1'
+        if (wantsTour) window.localStorage.removeItem('nexobarrio-show-tour')
+      } catch {
+        // URL-driven tours also work without browser storage.
+      }
+      setShowTour(wantsTour)
+    }
+    setSplash(false)
+  }, [])
+
   useEffect(() => {
     try {
       const preferences = JSON.parse(localStorage.getItem('nexobarrio-accessibility') || '{}')
@@ -234,28 +256,6 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
       void window.navigator.serviceWorker.register('/sw.js')
     }
 
-    const timer = window.setTimeout(() => {
-      setSplash(false)
-      const hasOnboarded = window.localStorage.getItem('nexobarrio-onboarded')
-      if (!hasOnboarded) {
-        setOnboarding(true)
-      } else {
-        const queryParams = new URLSearchParams(window.location.search)
-        const wantsTour =
-          queryParams.get('tour') === '1' ||
-          window.localStorage.getItem('nexobarrio-show-tour') === '1'
-        if (wantsTour) {
-          setShowTour(true)
-          try {
-            window.localStorage.removeItem('nexobarrio-show-tour')
-          } catch {
-            /* ignore */
-          }
-        }
-      }
-    }, 1200)
-
-    return () => window.clearTimeout(timer)
   }, [router])
 
   useEffect(() => {
@@ -428,7 +428,7 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
   }
 
   if (splash) {
-    return <SplashScreen />
+    return <SplashScreen onComplete={completeSplash} />
   }
 
   if (onboarding) {
