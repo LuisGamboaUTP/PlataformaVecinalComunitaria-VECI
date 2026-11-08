@@ -24,4 +24,13 @@ logs/
 *.db
 *.db-shm
 *.db-wal
+!.env.example
+.venv/
+backend/.venv/
+__pycache__/
+*.pyc
 
+
+.vscode/
+pyrefly.toml
+pyrightconfig.json

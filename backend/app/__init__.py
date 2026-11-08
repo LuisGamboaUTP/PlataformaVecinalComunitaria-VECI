@@ -1,0 +1,2 @@
+"""NexoBarrio FastAPI Backend package."""
+
