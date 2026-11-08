@@ -152,6 +152,7 @@ const publishKinds = ['product', 'service', 'skill', 'barter', 'gift', 'loan', '
 export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
   const router = useRouter()
   const [splash, setSplash] = useState(true)
+  const [splashVisit, setSplashVisit] = useState(0)
   const [onboarding, setOnboarding] = useState(false)
   const [showTour, setShowTour] = useState(false)
   const [tab, setTab] = useState<Tab>('map')
@@ -201,6 +202,28 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
       setShowTour(wantsTour)
     }
     setSplash(false)
+  }, [])
+
+  useEffect(() => {
+    const replaySplash = () => {
+      if (window.location.pathname !== '/') return
+      setOnboarding(false)
+      setShowTour(false)
+      setSplashVisit((visit) => visit + 1)
+      setSplash(true)
+    }
+    const restorePage = (event: PageTransitionEvent) => {
+      if (event.persisted) replaySplash()
+    }
+
+    // Re-entering a cached route can restore state with the intro already finished.
+    replaySplash()
+    window.addEventListener('popstate', replaySplash)
+    window.addEventListener('pageshow', restorePage)
+    return () => {
+      window.removeEventListener('popstate', replaySplash)
+      window.removeEventListener('pageshow', restorePage)
+    }
   }, [])
 
   useEffect(() => {
@@ -428,7 +451,7 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
   }
 
   if (splash) {
-    return <SplashScreen onComplete={completeSplash} />
+    return <SplashScreen key={splashVisit} onComplete={completeSplash} />
   }
 
   if (onboarding) {

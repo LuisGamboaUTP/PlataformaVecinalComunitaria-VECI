@@ -16,6 +16,10 @@ Abre `http://localhost:3000` (o el puerto indicado por `PORT`). Recarga la pági
 para repetir la animación. El splash se puede revisar sin iniciar el backend;
 las funciones con datos reales de la app sí usan el backend del equipo.
 
+La intro también vuelve a reproducirse al regresar a `/` con Atrás o Adelante,
+al restaurar la página desde la caché de navegación y al entrar de nuevo a esa
+ruta. No depende de borrar cookies, sesión ni preferencias de onboarding.
+
 La secuencia dura aproximadamente 3,35 segundos: entra la V, se dibuja la casa,
 aparecen las ventanas y los destellos, y se presentan las letras VECI y el mensaje.
 En escritorio hay una respuesta suave al puntero. El botón «Entrar» permite omitirla.
