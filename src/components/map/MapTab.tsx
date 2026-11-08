@@ -147,6 +147,15 @@ export function MapTab({
     )
   }, [setGeoNotice])
 
+  // Auto-dismiss geoNotice after 4.5 seconds
+  useEffect(() => {
+    if (!geoNotice) return
+    const timer = window.setTimeout(() => {
+      setGeoNotice('')
+    }, 4500)
+    return () => window.clearTimeout(timer)
+  }, [geoNotice, setGeoNotice])
+
   // 2. Leaflet Map Lifecycle in 'real' mode
   useEffect(() => {
     if (mapMode !== 'real' || typeof window === 'undefined' || !mapContainerRef.current) return
@@ -428,8 +437,15 @@ export function MapTab({
         </button>
 
         {geoNotice && (
-          <p className="geo-notice" role="status">
-            {geoNotice}
+          <p
+            className="geo-notice"
+            role="status"
+            onClick={() => setGeoNotice('')}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            title="Toca para cerrar"
+          >
+            <span>{geoNotice}</span>
+            <X size={14} style={{ opacity: 0.7, flexShrink: 0 }} />
           </p>
         )}
 
