@@ -252,7 +252,7 @@ export function MapTab({
         const marker = L.marker([itemLat, itemLng], { icon: customIcon })
         marker.on('click', () => {
           setSelected(item)
-          setSheetOpen(true)
+          openDetail(item)
         })
         marker.addTo(markersLayerRef.current)
       })
@@ -376,7 +376,7 @@ export function MapTab({
                   style={{ left: `${item.x}%`, top: `${item.y}%` }}
                   onClick={() => {
                     setSelected(item)
-                    setSheetOpen(true)
+                    openDetail(item)
                   }}
                   aria-label={`Ver ${item.title}`}
                 >
@@ -388,43 +388,7 @@ export function MapTab({
           </>
         )}
 
-        {/* TARJETA DESLIZANTE DE VISTA PREVIA (BOTTOM SHEET COMPACTO) */}
-        {sheetOpen && selected && filtered.some((item) => item.id === selected.id) && (
-          <div
-            className="map-preview"
-            style={{
-              left: mapMode === 'real' ? '12px' : `${Math.min(70, Math.max(10, selected.x))}%`,
-              top: mapMode === 'real' ? 'auto' : `${Math.min(64, Math.max(15, selected.y))}%`,
-              bottom: mapMode === 'real' ? '185px' : undefined,
-            }}
-          >
-            <div className="map-preview__header">
-              <strong>{selected.title}</strong>
-              <button
-                type="button"
-                className="map-preview__close"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSelected(null as unknown as ListingView)
-                }}
-                aria-label="Cerrar vista previa"
-              >
-                <X size={16} />
-              </button>
-            </div>
 
-            <span>
-              {selected.distanceKm != null ? `${selected.distanceKm.toFixed(2)} km` : 'Cerca de ti'}{' '}
-              {selected.approvalAuthor
-                ? '· ✓ Visto Bueno Vecinal'
-                : '· Vecino verificado'}
-            </span>
-
-            <button className="primary-button" onClick={() => openDetail(selected)}>
-              Ver ficha completa
-            </button>
-          </div>
-        )}
 
         {/* BOTÓN FLOTANTE MI UBICACIÓN GPS */}
         <button
