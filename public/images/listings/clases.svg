@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 320" role="img" aria-label="Clases">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#c7c1f2"/><stop offset="1" stop-color="#6b69a8"/></linearGradient></defs>
+<rect width="420" height="320" rx="30" fill="url(#bg)"/>
+<circle cx="355" cy="35" r="100" fill="#fff" opacity=".13"/><circle cx="70" cy="292" r="120" fill="#fff" opacity=".12"/>
+<g fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"><path d="M111 107h200v142H111zM210 107v142m-81-110h58m-58 27h58m48-27h58m-58 27h58"/></g>
+<text x="32" y="49" font-family="Arial,sans-serif" font-weight="700" font-size="22" fill="#fff">Clases</text>
+</svg>

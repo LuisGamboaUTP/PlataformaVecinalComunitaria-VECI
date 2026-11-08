@@ -3,9 +3,22 @@
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Eye, EyeOff, LockKeyhole, MapPin, ShieldCheck } from 'lucide-react'
+import { readLocal, saveSession, writeLocal, type LocalUser } from '@/lib/local-store'
 
-export function AuthForm() {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+type LocalAccount = { user: LocalUser; passwordDigest: string }
+async function digest(value: string) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+export function AuthForm({
+  initialMode = 'login',
+  switchable = true,
+}: {
+  initialMode?: 'login' | 'register'
+  switchable?: boolean
+}) {
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode)
   const [visible, setVisible] = useState(false)
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
@@ -17,19 +30,28 @@ export function AuthForm() {
     const formData = new FormData(event.currentTarget)
     const data = Object.fromEntries(formData.entries())
     try {
-      const response = await fetch('/api/app/session', {
-        method: mode === 'login' ? 'POST' : 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-      const result = await response.json()
-      if (!response.ok) {
-        setError(result.error?.message || 'No pudimos completar la operación.')
-        return
+      const email = String(data.email || '').trim().toLowerCase()
+      const passwordDigest = await digest(String(data.password || ''))
+      const accounts = readLocal<LocalAccount[]>('nexobarrio-accounts', [])
+      if (mode === 'register') {
+        if (accounts.some((account) => account.user.email === email)) {
+          setError('Ya existe una cuenta local con ese correo.')
+          return
+        }
+        const user: LocalUser = { id: crypto.randomUUID(), email, displayName: String(data.displayName || '').trim(), zoneName: String(data.zoneName || 'Centro Cívico'), verificationStatus: 'unverified' }
+        writeLocal('nexobarrio-accounts', [...accounts, { user, passwordDigest }])
+        saveSession(user)
+      } else {
+        const account = accounts.find((entry) => entry.user.email === email && entry.passwordDigest === passwordDigest)
+        if (!account) {
+          setError('Correo o contraseña incorrectos en este dispositivo.')
+          return
+        }
+        saveSession(account.user)
       }
       window.location.assign('/')
     } catch {
-      setError('Sin conexión. Intenta nuevamente cuando recuperes internet.')
+      setError('No se pudo guardar el perfil local.')
     } finally {
       setPending(false)
     }
@@ -38,25 +60,8 @@ export function AuthForm() {
   const loginDemo = async (provider = false) => {
     setPending(true)
     setError('')
-    try {
-      const response = await fetch('/api/app/session', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          email: provider ? 'proveedor.demo@nexobarrio.test' : 'demo@nexobarrio.test',
-          password: provider ? 'ProveedorNexo!2026' : 'DemoNexo!2026',
-        }),
-      })
-      if (!response.ok) {
-        setError('La cuenta demo no está disponible.')
-        return
-      }
-      window.location.assign('/')
-    } catch {
-      setError('Sin conexión. No se pudo abrir la demostración.')
-    } finally {
-      setPending(false)
-    }
+    saveSession({ id: provider ? 'demo-carlos' : 'demo-lucia', displayName: provider ? 'Carlos Mendoza' : 'Lucía', zoneName: 'Centro Cívico', email: provider ? 'proveedor.demo@nexobarrio.test' : 'demo@nexobarrio.test', verificationStatus: 'unverified' })
+    window.location.assign('/')
   }
 
   return (
@@ -82,22 +87,33 @@ export function AuthForm() {
 
       <section className="auth-panel">
         <div className="auth-panel__inner">
-          <div className="segmented" role="tablist" aria-label="Acceso">
-            <button
-              type="button"
-              onClick={() => setMode('login')}
-              className={mode === 'login' ? 'is-active' : ''}
-            >
-              Ingresar
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('register')}
-              className={mode === 'register' ? 'is-active' : ''}
-            >
-              Crear cuenta
-            </button>
+          <div className="auth-mobile-header">
+            <Link href="/" className="round-control" aria-label="Volver al mapa">
+              <ArrowLeft size={18} />
+            </Link>
+            <div className="brand-lockup">
+              <span className="brand-mark">N</span>
+              <span>NexoBarrio</span>
+            </div>
           </div>
+          {switchable && (
+            <div className="segmented" role="tablist" aria-label="Acceso">
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className={mode === 'login' ? 'is-active' : ''}
+              >
+                Ingresar
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('register')}
+                className={mode === 'register' ? 'is-active' : ''}
+              >
+                Crear cuenta
+              </button>
+            </div>
+          )}
 
           <div className="auth-heading">
             <span className="eyebrow">
@@ -107,7 +123,7 @@ export function AuthForm() {
             <p>
               {mode === 'login'
                 ? 'Tus guardados y conversaciones te esperan.'
-                : 'Correo confirmado no equivale a residencia verificada.'}
+                : 'Tu perfil se guardará solo en este navegador.'}
             </p>
           </div>
 
@@ -132,6 +148,7 @@ export function AuthForm() {
                       <option>Santa Beatriz</option>
                       <option>Jesús María</option>
                       <option>Lince</option>
+                      <option>Breña</option>
                     </select>
                   </span>
                 </label>
@@ -176,18 +193,28 @@ export function AuthForm() {
               {pending ? 'Procesando…' : mode === 'login' ? 'Ingresar al barrio' : 'Crear cuenta'}
             </button>
           </form>
+          {mode === 'login' ? (
+            <p className="auth-links">
+              <Link href="/registro">Crear cuenta</Link> ·{' '}
+              <Link href="/recuperar">Recuperar contraseña</Link>
+            </p>
+          ) : (
+            <p className="auth-links">
+              <Link href="/login">Ya tengo cuenta</Link>
+            </p>
+          )}
 
           <div className="demo-login">
             <div>
               <strong>Recorrido de demostración</strong>
-              <p>Cuentas compartidas y rotuladas. No ingreses información personal.</p>
+              <p>Perfiles de ejemplo guardados en este navegador.</p>
             </div>
             <span>
               <button type="button" onClick={() => loginDemo(false)} disabled={pending}>
-                Entrar como solicitante
+                Entrar como Vecina (Lucía)
               </button>
               <button type="button" onClick={() => loginDemo(true)} disabled={pending}>
-                Entrar como proveedor
+                Entrar como Técnico (Carlos)
               </button>
             </span>
           </div>
@@ -195,8 +222,7 @@ export function AuthForm() {
           <div className="prototype-note">
             <ShieldCheck size={18} />
             <p>
-              <strong>Verificación documental:</strong> prototipo no habilitado. No pedimos DNI ni
-              carnet hasta integrar un proveedor seguro.
+              <strong>Versión frontend:</strong> los datos no se comparten con otras personas. Evita ingresar información sensible.
             </p>
           </div>
         </div>

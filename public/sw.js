@@ -1,5 +1,5 @@
-const CACHE_NAME = 'nexobarrio-shell-v1'
-const SHELL_URLS = ['/', '/auth', '/manifest.webmanifest', '/favicon.svg']
+const CACHE_NAME = 'nexobarrio-shell-v2'
+const SHELL_URLS = ['/', '/auth', '/login', '/registro', '/recuperar', '/onboarding', '/manifest.webmanifest', '/favicon.svg', ...['electricista', 'bicicleta', 'taladro', 'clases', 'gasfiteria', 'ayuda-mayor', 'libros', 'escalera'].map((name) => `/images/listings/${name}.svg`)]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS)))
