@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 320" role="img" aria-label="Taladro">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#ffd0a0"/><stop offset="1" stop-color="#db7b4c"/></linearGradient></defs>
+<rect width="420" height="320" rx="30" fill="url(#bg)"/>
+<circle cx="355" cy="35" r="100" fill="#fff" opacity=".13"/><circle cx="70" cy="292" r="120" fill="#fff" opacity=".12"/>
+<g fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"><path d="M124 128h167v58H124zM164 186h72v82h-47l-25-49zM291 146h42m-185-18v58m36-58v58"/></g>
+<text x="32" y="49" font-family="Arial,sans-serif" font-weight="700" font-size="22" fill="#fff">Taladro</text>
+</svg>

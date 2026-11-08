@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 320" role="img" aria-label="Gasfitería">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#b3e1dc"/><stop offset="1" stop-color="#2e8292"/></linearGradient></defs>
+<rect width="420" height="320" rx="30" fill="url(#bg)"/>
+<circle cx="355" cy="35" r="100" fill="#fff" opacity=".13"/><circle cx="70" cy="292" r="120" fill="#fff" opacity=".12"/>
+<g fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"><path d="M124 106v77q0 37 40 37h90q40 0 40-40v-73m-170 0h42m86 0h42M164 220v40m90-40v40"/></g>
+<text x="32" y="49" font-family="Arial,sans-serif" font-weight="700" font-size="22" fill="#fff">Gasfitería</text>
+</svg>

@@ -2,60 +2,56 @@
 
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import {
-  ArrowLeft,
-  Check,
-  CreditCard,
-  Eye,
-  EyeOff,
-  LockKeyhole,
-  Mail,
-  MapPin,
-  ShieldCheck,
-  UserCheck,
-} from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, MapPin, ShieldCheck } from 'lucide-react'
+import { readLocal, saveSession, writeLocal, type LocalUser } from '@/lib/local-store'
 
-export function AuthForm() {
-  const [mode, setMode] = useState<'login' | 'register' | 'recover'>('login')
+type LocalAccount = { user: LocalUser; passwordDigest: string }
+async function digest(value: string) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+export function AuthForm({
+  initialMode = 'login',
+  switchable = true,
+}: {
+  initialMode?: 'login' | 'register'
+  switchable?: boolean
+}) {
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode)
   const [visible, setVisible] = useState(false)
-  const [docType, setDocType] = useState<'DNI' | 'CE'>('DNI')
-  const [docNumber, setDocNumber] = useState('')
   const [error, setError] = useState('')
-  const [recoveryNotice, setRecoveryNotice] = useState('')
   const [pending, setPending] = useState(false)
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setPending(true)
     setError('')
-    setRecoveryNotice('')
     const formData = new FormData(event.currentTarget)
     const data = Object.fromEntries(formData.entries())
-
-    if (mode === 'recover') {
-      window.setTimeout(() => {
-        setPending(false)
-        setRecoveryNotice(
-          `Si el correo ${String(data.email || '')} está registrado, recibirás instrucciones para restablecer tu contraseña.`,
-        )
-      }, 450)
-      return
-    }
-
     try {
-      const response = await fetch('/api/app/session', {
-        method: mode === 'login' ? 'POST' : 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-      const result = await response.json()
-      if (!response.ok) {
-        setError(result.error?.message || 'No pudimos completar la operación.')
-        return
+      const email = String(data.email || '').trim().toLowerCase()
+      const passwordDigest = await digest(String(data.password || ''))
+      const accounts = readLocal<LocalAccount[]>('nexobarrio-accounts', [])
+      if (mode === 'register') {
+        if (accounts.some((account) => account.user.email === email)) {
+          setError('Ya existe una cuenta local con ese correo.')
+          return
+        }
+        const user: LocalUser = { id: crypto.randomUUID(), email, displayName: String(data.displayName || '').trim(), zoneName: String(data.zoneName || 'Centro Cívico'), verificationStatus: 'unverified' }
+        writeLocal('nexobarrio-accounts', [...accounts, { user, passwordDigest }])
+        saveSession(user)
+      } else {
+        const account = accounts.find((entry) => entry.user.email === email && entry.passwordDigest === passwordDigest)
+        if (!account) {
+          setError('Correo o contraseña incorrectos en este dispositivo.')
+          return
+        }
+        saveSession(account.user)
       }
       window.location.assign('/')
     } catch {
-      setError('Sin conexión. Intenta nuevamente cuando recuperes internet.')
+      setError('No se pudo guardar el perfil local.')
     } finally {
       setPending(false)
     }
@@ -64,25 +60,8 @@ export function AuthForm() {
   const loginDemo = async (provider = false) => {
     setPending(true)
     setError('')
-    try {
-      const response = await fetch('/api/app/session', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          email: provider ? 'proveedor.demo@nexobarrio.test' : 'demo@nexobarrio.test',
-          password: provider ? 'ProveedorNexo!2026' : 'DemoNexo!2026',
-        }),
-      })
-      if (!response.ok) {
-        setError('La cuenta demo no está disponible.')
-        return
-      }
-      window.location.assign('/')
-    } catch {
-      setError('Sin conexión. No se pudo abrir la demostración.')
-    } finally {
-      setPending(false)
-    }
+    saveSession({ id: provider ? 'demo-carlos' : 'demo-lucia', displayName: provider ? 'Carlos Mendoza' : 'Lucía', zoneName: 'Centro Cívico', email: provider ? 'proveedor.demo@nexobarrio.test' : 'demo@nexobarrio.test', verificationStatus: 'unverified' })
+    window.location.assign('/')
   }
 
   return (
@@ -98,79 +77,53 @@ export function AuthForm() {
         <div className="auth-story__copy">
           <span className="eyebrow eyebrow--light">Tu barrio, más cerca</span>
           <h1>Resolver juntos cambia la distancia.</h1>
-          <p>
-            Encuentra oficios con «Visto Bueno Vecinal», comparte herramientas sin dinero y coordina
-            apoyo comunitario seguro.
-          </p>
+          <p>Encuentra oficios, comparte recursos y coordina ayuda con personas de tu zona.</p>
         </div>
         <div className="auth-trust">
           <ShieldCheck size={20} />
-          <span>
-            Tu dirección exacta nunca se publica. Cuidamos tu privacidad mostrando solo referencias
-            aproximadas en tu barrio.
-          </span>
+          <span>Tu dirección exacta nunca se publica.</span>
         </div>
       </section>
 
       <section className="auth-panel">
         <div className="auth-panel__inner">
-          <div className="segmented" role="tablist" aria-label="Acceso">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('login')
-                setError('')
-                setRecoveryNotice('')
-              }}
-              className={mode === 'login' ? 'is-active' : ''}
-            >
-              Ingresar
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('register')
-                setError('')
-                setRecoveryNotice('')
-              }}
-              className={mode === 'register' ? 'is-active' : ''}
-            >
-              Crear cuenta
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('recover')
-                setError('')
-                setRecoveryNotice('')
-              }}
-              className={mode === 'recover' ? 'is-active' : ''}
-            >
-              Recuperar
-            </button>
+          <div className="auth-mobile-header">
+            <Link href="/" className="round-control" aria-label="Volver al mapa">
+              <ArrowLeft size={18} />
+            </Link>
+            <div className="brand-lockup">
+              <span className="brand-mark">N</span>
+              <span>NexoBarrio</span>
+            </div>
           </div>
+          {switchable && (
+            <div className="segmented" role="tablist" aria-label="Acceso">
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className={mode === 'login' ? 'is-active' : ''}
+              >
+                Ingresar
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('register')}
+                className={mode === 'register' ? 'is-active' : ''}
+              >
+                Crear cuenta
+              </button>
+            </div>
+          )}
 
           <div className="auth-heading">
             <span className="eyebrow">
-              {mode === 'login'
-                ? 'Qué bueno verte'
-                : mode === 'register'
-                  ? 'Cuenta multifunción vecinal'
-                  : 'Restablecer acceso'}
+              {mode === 'login' ? 'Qué bueno verte' : 'Empieza por tu zona'}
             </span>
-            <h2>
-              {mode === 'login'
-                ? 'Vuelve a tu barrio'
-                : mode === 'register'
-                  ? 'Crea tu perfil y valida tu identidad'
-                  : 'Recupera tu contraseña'}
-            </h2>
+            <h2>{mode === 'login' ? 'Vuelve a tu barrio' : 'Crea tu perfil vecinal'}</h2>
             <p>
               {mode === 'login'
-                ? 'Tus guardados, trueques y conversaciones te esperan.'
-                : mode === 'register'
-                  ? 'Puedes verificar tu DNI o Carnet de Extranjería para obtener el distintivo de identidad verificada.'
-                  : 'Ingresa tu correo para enviarte un enlace seguro de recuperación.'}
+                ? 'Tus guardados y conversaciones te esperan.'
+                : 'Tu perfil se guardará solo en este navegador.'}
             </p>
           </div>
 
@@ -182,12 +135,12 @@ export function AuthForm() {
                   <input
                     name="displayName"
                     autoComplete="name"
-                    placeholder="Como te verán tus vecinos (ej. Ana Quispe)"
+                    placeholder="Como te verán tus vecinos"
                     required
                   />
                 </label>
                 <label>
-                  Barrio o zona declarada
+                  Barrio o zona
                   <span className="input-with-icon">
                     <MapPin size={18} />
                     <select name="zoneName" defaultValue="Centro Cívico" required>
@@ -199,126 +152,62 @@ export function AuthForm() {
                     </select>
                   </span>
                 </label>
-                <div className="doc-verify-box">
-                  <div className="doc-verify-header">
-                    <CreditCard size={18} />
-                    <div>
-                      <strong>Verificación de Identidad (DNI / Carnet de Extranjería)</strong>
-                      <small>Opcional ahora · otorga insignia de Identidad Verificada</small>
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <label>
-                      Tipo de documento
-                      <select
-                        name="docType"
-                        value={docType}
-                        onChange={(e) => setDocType(e.target.value as 'DNI' | 'CE')}
-                      >
-                        <option value="DNI">DNI (Perú · 8 dígitos)</option>
-                        <option value="CE">Carnet de Extranjería (CE)</option>
-                      </select>
-                    </label>
-                    <label>
-                      Número de {docType}
-                      <input
-                        name="docNumber"
-                        value={docNumber}
-                        onChange={(e) => setDocNumber(e.target.value.trim())}
-                        placeholder={docType === 'DNI' ? 'Ej. 74829103' : 'Ej. 001849201'}
-                        maxLength={docType === 'DNI' ? 8 : 12}
-                      />
-                    </label>
-                  </div>
-                  {docNumber && (
-                    <small className="doc-valid-hint">
-                      {(docType === 'DNI' && /^\d{8}$/.test(docNumber)) ||
-                      (docType === 'CE' && /^[A-Z0-9]{9,12}$/i.test(docNumber)) ? (
-                        <span className="is-valid">
-                          <Check size={14} /> Formato de {docType} válido para verificación
-                        </span>
-                      ) : (
-                        <span>
-                          {docType === 'DNI'
-                            ? 'El DNI debe tener exactamente 8 dígitos numéricos.'
-                            : 'El Carnet de Extranjería debe tener entre 9 y 12 caracteres.'}
-                        </span>
-                      )}
-                    </small>
-                  )}
-                </div>
               </>
             )}
-
             <label>
-              Correo electrónico
+              Correo
+              <input
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="tu@correo.com"
+                required
+              />
+            </label>
+            <label>
+              Contraseña
               <span className="input-with-icon">
-                <Mail size={18} />
+                <LockKeyhole size={18} />
                 <input
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="tu@correo.com"
+                  name="password"
+                  type={visible ? 'text' : 'password'}
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  minLength={8}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setVisible(!visible)}
+                  aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </span>
             </label>
-
-            {mode !== 'recover' && (
-              <label>
-                Contraseña
-                <span className="input-with-icon">
-                  <LockKeyhole size={18} />
-                  <input
-                    name="password"
-                    type={visible ? 'text' : 'password'}
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    minLength={8}
-                    placeholder="Mínimo 8 caracteres"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setVisible(!visible)}
-                    aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  >
-                    {visible ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </span>
-              </label>
-            )}
-
             {error && (
               <p className="form-error" role="alert">
                 {error}
               </p>
             )}
-            {recoveryNotice && (
-              <p className="form-feedback" role="status">
-                {recoveryNotice}
-              </p>
-            )}
-
             <button className="primary-button primary-button--wide" disabled={pending}>
-              {pending
-                ? 'Procesando…'
-                : mode === 'login'
-                  ? 'Ingresar al barrio'
-                  : mode === 'register'
-                    ? 'Crear cuenta vecinal'
-                    : 'Enviar enlace de recuperación'}
+              {pending ? 'Procesando…' : mode === 'login' ? 'Ingresar al barrio' : 'Crear cuenta'}
             </button>
           </form>
+          {mode === 'login' ? (
+            <p className="auth-links">
+              <Link href="/registro">Crear cuenta</Link> ·{' '}
+              <Link href="/recuperar">Recuperar contraseña</Link>
+            </p>
+          ) : (
+            <p className="auth-links">
+              <Link href="/login">Ya tengo cuenta</Link>
+            </p>
+          )}
 
           <div className="demo-login">
             <div>
-              <strong>
-                <UserCheck size={16} /> Acceso rápido de prueba
-              </strong>
-              <p>
-                Ingresa con un clic para explorar la experiencia como vecina o como técnico del
-                barrio:
-              </p>
+              <strong>Recorrido de demostración</strong>
+              <p>Perfiles de ejemplo guardados en este navegador.</p>
             </div>
             <span>
               <button type="button" onClick={() => loginDemo(false)} disabled={pending}>
@@ -333,8 +222,7 @@ export function AuthForm() {
           <div className="prototype-note">
             <ShieldCheck size={18} />
             <p>
-              <strong>Confianza vecinal:</strong> validamos tu identidad con DNI o Carnet de
-              Extranjería y destacamos las recomendaciones reales de vecinos de tu misma zona.
+              <strong>Versión frontend:</strong> los datos no se comparten con otras personas. Evita ingresar información sensible.
             </p>
           </div>
         </div>
