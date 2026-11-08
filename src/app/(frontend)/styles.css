@@ -2995,6 +2995,10 @@ html[data-simple-view='true'] button, html[data-simple-view='true'] a, html[data
   font-family: inherit;
 }
 
+.leaflet-map-wrapper .leaflet-tile-pane {
+  filter: contrast(0.96) brightness(1.02) saturate(0.88);
+}
+
 .leaflet-map-wrapper .leaflet-top,
 .leaflet-map-wrapper .leaflet-bottom {
   z-index: 4;

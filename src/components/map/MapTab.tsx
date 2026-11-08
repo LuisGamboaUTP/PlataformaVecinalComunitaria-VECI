@@ -169,10 +169,10 @@ export function MapTab({
         zoomControl: false,
       })
 
-      // Minimalist Clean CartoDB Positron Layer (Light, OpenStreetMap data)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        subdomains: 'abcd',
+      // 100% Free & OpenStreetMap Tiles (Sin API Key ni marcas de agua)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        subdomains: ['a', 'b', 'c'],
         maxZoom: 19,
       }).addTo(map)
 
