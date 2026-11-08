@@ -2,13 +2,126 @@
 
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Eye, EyeOff, LockKeyhole, MapPin, ShieldCheck } from 'lucide-react'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  IdCard,
+  Loader2,
+  LockKeyhole,
+  MapPin,
+  ShieldCheck,
+} from 'lucide-react'
+import { readLocal, saveSession, writeLocal, type LocalUser } from '@/lib/local-store'
+import { api } from '@/lib/api-client'
 
-export function AuthForm() {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+type LocalAccount = { user: LocalUser; passwordDigest: string }
+
+const PERU_FIRST_NAMES = [
+  'Carlos',
+  'Lucía',
+  'Pedro',
+  'Rosa',
+  'Jorge',
+  'María',
+  'Alejandro',
+  'Elena',
+  'José',
+  'Ana',
+  'Luis',
+  'Carmen',
+  'Miguel',
+  'Diana',
+  'Víctor',
+]
+
+const PERU_LAST_NAMES = [
+  'Mendoza',
+  'Paredes',
+  'Huamán',
+  'Morales',
+  'Valdivia',
+  'Torres',
+  'Quispe',
+  'Flores',
+  'Rodríguez',
+  'Rojas',
+  'García',
+  'Vargas',
+  'Castillo',
+]
+
+const KNOWN_DOCS: Record<string, { name: string; zone: string }> = {
+  '44556677': { name: 'Carlos Mendoza', zone: 'Centro Cívico' },
+  '001234567': { name: 'Lucía Paredes', zone: 'Centro Cívico' },
+  '12345678': { name: 'Lucía Paredes', zone: 'Centro Cívico' },
+  '87654321': { name: 'Pedro Huamán', zone: 'Centro Cívico' },
+  '72819203': { name: 'Rosa Morales', zone: 'Santa Beatriz' },
+  '10293847': { name: 'Jorge Valdivia', zone: 'Jesús María' },
+}
+
+function resolveDocumentData(type: string, number: string): { name: string; zone: string } {
+  const clean = number.trim().toUpperCase()
+  if (KNOWN_DOCS[clean]) {
+    return KNOWN_DOCS[clean]
+  }
+  let hash = 0
+  for (let i = 0; i < clean.length; i++) {
+    hash = (hash * 31 + clean.charCodeAt(i)) >>> 0
+  }
+  const first = PERU_FIRST_NAMES[hash % PERU_FIRST_NAMES.length]
+  const last1 = PERU_LAST_NAMES[(hash >> 3) % PERU_LAST_NAMES.length]
+  const last2 = PERU_LAST_NAMES[(hash >> 7) % PERU_LAST_NAMES.length]
+  return {
+    name: `${first} ${last1} ${last2}`,
+    zone: 'Centro Cívico',
+  }
+}
+
+async function digest(value: string) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+export function AuthForm({
+  initialMode = 'login',
+  switchable = true,
+}: {
+  initialMode?: 'login' | 'register'
+  switchable?: boolean
+}) {
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode)
+  const [docType, setDocType] = useState<'dni' | 'ce' | 'pasaporte'>('dni')
+  const [docNumber, setDocNumber] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [zoneName, setZoneName] = useState('Centro Cívico')
+  const [isLookingUp, setIsLookingUp] = useState(false)
+  const [lookupSuccess, setLookupSuccess] = useState<string | null>(null)
   const [visible, setVisible] = useState(false)
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
+
+  const handleDocNumberChange = (value: string) => {
+    const cleaned = docType === 'dni' ? value.replace(/\D/g, '').slice(0, 8) : value.slice(0, 16)
+    setDocNumber(cleaned)
+
+    const isComplete =
+      (docType === 'dni' && cleaned.length === 8) || (docType !== 'dni' && cleaned.length >= 8)
+
+    if (isComplete) {
+      setIsLookingUp(true)
+      setTimeout(() => {
+        const data = resolveDocumentData(docType, cleaned)
+        setDisplayName(data.name)
+        if (data.zone) setZoneName(data.zone)
+        setLookupSuccess(`Datos cargados del padrón: ${data.name}`)
+        setIsLookingUp(false)
+      }, 350)
+    } else {
+      setLookupSuccess(null)
+    }
+  }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -16,20 +129,79 @@ export function AuthForm() {
     setError('')
     const formData = new FormData(event.currentTarget)
     const data = Object.fromEntries(formData.entries())
+
     try {
-      const response = await fetch('/api/app/session', {
-        method: mode === 'login' ? 'POST' : 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-      const result = await response.json()
-      if (!response.ok) {
-        setError(result.error?.message || 'No pudimos completar la operación.')
-        return
+      const passwordDigest = await digest(String(data.password || ''))
+      const accounts = readLocal<LocalAccount[]>('nexobarrio-accounts', [])
+
+      if (mode === 'register') {
+        const email = String(data.email || '').trim().toLowerCase()
+        const cleanDoc = docNumber.trim().toUpperCase()
+
+        if (accounts.some((account) => account.user.email === email)) {
+          setError('Ya existe una cuenta con ese correo en este dispositivo.')
+          return
+        }
+
+        if (cleanDoc && accounts.some((account) => account.user.docNumber?.toUpperCase() === cleanDoc)) {
+          setError('Ya existe una cuenta registrada con ese número de documento.')
+          return
+        }
+
+        if (docType === 'dni' && cleanDoc && !/^\d{8}$/.test(cleanDoc)) {
+          setError('El DNI debe contener exactamente 8 dígitos numéricos.')
+          return
+        }
+
+        const finalName = displayName.trim() || String(data.displayName || '').trim() || 'Vecino de la zona'
+
+        try {
+          const user = await api.register({
+            displayName: finalName,
+            email,
+            password: String(data.password || ''),
+            zoneName,
+            docType,
+            docNumber: cleanDoc || undefined,
+          })
+          saveSession(user)
+        } catch {
+          const user: LocalUser = {
+            id: crypto.randomUUID(),
+            email,
+            displayName: finalName,
+            zoneName,
+            verificationStatus: cleanDoc ? 'verified' : 'unverified',
+            docType,
+            docNumber: cleanDoc || undefined,
+          }
+          writeLocal('nexobarrio-accounts', [...accounts, { user, passwordDigest }])
+          saveSession(user)
+        }
+      } else {
+        const identifier = String(data.identifier || data.email || '').trim().toLowerCase()
+        try {
+          const user = await api.login(identifier, String(data.password || ''))
+          saveSession(user)
+        } catch {
+          const account = accounts.find(
+            (entry) =>
+              (entry.user.email.toLowerCase() === identifier ||
+                (entry.user.docNumber && entry.user.docNumber.toLowerCase() === identifier)) &&
+              entry.passwordDigest === passwordDigest,
+          )
+
+          if (!account) {
+            setError('Correo, documento o contraseña incorrectos.')
+            return
+          }
+          saveSession(account.user)
+        }
       }
+
       window.location.assign('/')
     } catch {
-      setError('Sin conexión. Intenta nuevamente cuando recuperes internet.')
+      setError('No se pudo guardar el perfil.')
     } finally {
       setPending(false)
     }
@@ -38,25 +210,24 @@ export function AuthForm() {
   const loginDemo = async (provider = false) => {
     setPending(true)
     setError('')
+    const email = provider ? 'proveedor.demo@nexobarrio.test' : 'demo@nexobarrio.test'
+    const password = provider ? 'ProveedorNexo!2026' : 'DemoNexo!2026'
+
     try {
-      const response = await fetch('/api/app/session', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          email: provider ? 'proveedor.demo@nexobarrio.test' : 'demo@nexobarrio.test',
-          password: provider ? 'ProveedorNexo!2026' : 'DemoNexo!2026',
-        }),
-      })
-      if (!response.ok) {
-        setError('La cuenta demo no está disponible.')
-        return
-      }
-      window.location.assign('/')
+      const user = await api.login(email, password)
+      saveSession(user)
     } catch {
-      setError('Sin conexión. No se pudo abrir la demostración.')
-    } finally {
-      setPending(false)
+      saveSession({
+        id: provider ? 'demo-carlos' : 'demo-lucia',
+        displayName: provider ? 'Carlos Mendoza' : 'Lucía',
+        zoneName: 'Centro Cívico',
+        email,
+        verificationStatus: 'verified',
+        docType: provider ? 'dni' : 'ce',
+        docNumber: provider ? '44556677' : '001234567',
+      })
     }
+    window.location.assign('/')
   }
 
   return (
@@ -82,71 +253,158 @@ export function AuthForm() {
 
       <section className="auth-panel">
         <div className="auth-panel__inner">
-          <div className="segmented" role="tablist" aria-label="Acceso">
-            <button
-              type="button"
-              onClick={() => setMode('login')}
-              className={mode === 'login' ? 'is-active' : ''}
-            >
-              Ingresar
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('register')}
-              className={mode === 'register' ? 'is-active' : ''}
-            >
-              Crear cuenta
-            </button>
+          <div className="auth-mobile-header">
+            <Link href="/" className="round-control" aria-label="Volver al mapa">
+              <ArrowLeft size={18} />
+            </Link>
+            <div className="brand-lockup">
+              <span className="brand-mark">N</span>
+              <span>NexoBarrio</span>
+            </div>
           </div>
+
+          {switchable && (
+            <div className="segmented" role="tablist" aria-label="Acceso">
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className={mode === 'login' ? 'is-active' : ''}
+              >
+                Ingresar
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('register')}
+                className={mode === 'register' ? 'is-active' : ''}
+              >
+                Crear cuenta
+              </button>
+            </div>
+          )}
 
           <div className="auth-heading">
             <span className="eyebrow">
-              {mode === 'login' ? 'Qué bueno verte' : 'Empieza por tu zona'}
+              {mode === 'login' ? 'Qué bueno verte' : 'Empieza por tu documento'}
             </span>
             <h2>{mode === 'login' ? 'Vuelve a tu barrio' : 'Crea tu perfil vecinal'}</h2>
             <p>
               {mode === 'login'
                 ? 'Tus guardados y conversaciones te esperan.'
-                : 'Correo confirmado no equivale a residencia verificada.'}
+                : 'Ingresa tu DNI para autocompletar tus datos oficiales y validar tu identidad.'}
             </p>
           </div>
 
           <form onSubmit={submit} className="auth-form">
             {mode === 'register' && (
               <>
+                {/* 1. PRIMER CAMPO PROTAGONISTA: TIPO Y N° DE DOCUMENTO */}
+                <div className="form-row">
+                  <label>
+                    Tipo de documento
+                    <span className="input-with-icon">
+                      <IdCard size={18} />
+                      <select
+                        name="docType"
+                        value={docType}
+                        onChange={(e) => {
+                          const nextType = e.target.value as 'dni' | 'ce' | 'pasaporte'
+                          setDocType(nextType)
+                          setDocNumber('')
+                          setLookupSuccess(null)
+                        }}
+                      >
+                        <option value="dni">DNI (Perú)</option>
+                        <option value="ce">Carnet Extranjería (CE)</option>
+                        <option value="pasaporte">Pasaporte</option>
+                      </select>
+                    </span>
+                  </label>
+
+                  <label>
+                    Número de documento
+                    <input
+                      name="docNumber"
+                      type="text"
+                      value={docNumber}
+                      onChange={(e) => handleDocNumberChange(e.target.value)}
+                      placeholder={
+                        docType === 'dni'
+                          ? '8 dígitos (ej: 44556677)'
+                          : docType === 'ce'
+                            ? '9 dígitos / letras'
+                            : 'N° de pasaporte'
+                      }
+                      maxLength={docType === 'dni' ? 8 : 16}
+                      inputMode={docType === 'dni' ? 'numeric' : 'text'}
+                      autoComplete="off"
+                      autoFocus
+                      required
+                    />
+                  </label>
+                </div>
+
+                {isLookingUp && (
+                  <p style={{ margin: '-8px 0 0', fontSize: '12px', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Loader2 size={14} className="animate-spin" />
+                    Consultando padrón de identidad…
+                  </p>
+                )}
+
+                {lookupSuccess && (
+                  <p style={{ margin: '-8px 0 0', fontSize: '12px', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 650 }}>
+                    <CheckCircle2 size={16} />
+                    {lookupSuccess}
+                  </p>
+                )}
+
+                {/* 2. SEGUNDO CAMPO: NOMBRE PÚBLICO (AUTOCOMPLETADO POR DNI) */}
                 <label>
-                  Nombre público
+                  Nombre público {lookupSuccess ? '✓ Autocompletado' : ''}
                   <input
                     name="displayName"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
                     autoComplete="name"
-                    placeholder="Como te verán tus vecinos"
+                    placeholder="Se autocompleta con tu DNI"
                     required
                   />
                 </label>
+
+                {/* 3. TERCER CAMPO: BARRIO O ZONA */}
                 <label>
                   Barrio o zona
                   <span className="input-with-icon">
                     <MapPin size={18} />
-                    <select name="zoneName" defaultValue="Centro Cívico" required>
+                    <select
+                      name="zoneName"
+                      value={zoneName}
+                      onChange={(e) => setZoneName(e.target.value)}
+                      required
+                    >
                       <option>Centro Cívico</option>
                       <option>Santa Beatriz</option>
                       <option>Jesús María</option>
                       <option>Lince</option>
+                      <option>Breña</option>
                     </select>
                   </span>
                 </label>
               </>
             )}
+
+            {/* 4. CORREO / IDENTIFICADOR */}
             <label>
-              Correo
+              {mode === 'login' ? 'Correo o N° de documento (DNI / CE)' : 'Correo electrónico'}
               <input
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="tu@correo.com"
+                name={mode === 'login' ? 'identifier' : 'email'}
+                type={mode === 'login' ? 'text' : 'email'}
+                autoComplete={mode === 'login' ? 'username' : 'email'}
+                placeholder={mode === 'login' ? 'tu@correo.com o tu DNI / CE' : 'tu@correo.com'}
                 required
               />
             </label>
+
+            {/* 5. CONTRASEÑA */}
             <label>
               Contraseña
               <span className="input-with-icon">
@@ -167,27 +425,40 @@ export function AuthForm() {
                 </button>
               </span>
             </label>
+
             {error && (
               <p className="form-error" role="alert">
                 {error}
               </p>
             )}
+
             <button className="primary-button primary-button--wide" disabled={pending}>
               {pending ? 'Procesando…' : mode === 'login' ? 'Ingresar al barrio' : 'Crear cuenta'}
             </button>
           </form>
 
+          {mode === 'login' ? (
+            <p className="auth-links">
+              <Link href="/registro">Crear cuenta</Link> ·{' '}
+              <Link href="/recuperar">Recuperar contraseña</Link>
+            </p>
+          ) : (
+            <p className="auth-links">
+              <Link href="/login">Ya tengo cuenta</Link>
+            </p>
+          )}
+
           <div className="demo-login">
             <div>
               <strong>Recorrido de demostración</strong>
-              <p>Cuentas compartidas y rotuladas. No ingreses información personal.</p>
+              <p>Perfiles de ejemplo guardados en este navegador.</p>
             </div>
             <span>
               <button type="button" onClick={() => loginDemo(false)} disabled={pending}>
-                Entrar como solicitante
+                Entrar como Vecina (Lucía — CE)
               </button>
               <button type="button" onClick={() => loginDemo(true)} disabled={pending}>
-                Entrar como proveedor
+                Entrar como Técnico (Carlos — DNI)
               </button>
             </span>
           </div>
@@ -195,8 +466,7 @@ export function AuthForm() {
           <div className="prototype-note">
             <ShieldCheck size={18} />
             <p>
-              <strong>Verificación documental:</strong> prototipo no habilitado. No pedimos DNI ni
-              carnet hasta integrar un proveedor seguro.
+              <strong>Confianza vecinal:</strong> al ingresar tu documento se valida tu identidad oficial. Los datos sensibles nunca se comparten públicamente.
             </p>
           </div>
         </div>

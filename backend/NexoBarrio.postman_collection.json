@@ -1,0 +1,444 @@
+{
+  "info": {
+    "_postman_id": "b8c9d0e1-2345-4678-9abc-def012345678",
+    "name": "NexoBarrio API — FastAPI + Supabase (Grupo 22 Innovatrux)",
+    "description": "Colección oficial de Postman para probar el guardado y lectura de las 7 tablas de Supabase a través del Backend FastAPI en http://localhost:8000.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "interactionId",
+      "value": "int-1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Healthcheck & Estado Supabase",
+      "item": [
+        {
+          "name": "Verificar conexión FastAPI + Supabase",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Publicaciones (Tabla listings)",
+      "item": [
+        {
+          "name": "Listar todas las publicaciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/listings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "listings"]
+            }
+          }
+        },
+        {
+          "name": "Crear nueva publicación (Servicio con Trueque)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-User-Id", "value": "proveedor.demo@nexobarrio.test" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"service\",\n  \"title\": \"Instalación de intercomunicadores y chapas eléctricas\",\n  \"description\": \"Revisión y mantenimiento de intercomunicadores para edificios y casas en Centro Cívico y Santa Beatriz. Garantía de 6 meses.\",\n  \"category\": \"Electricidad\",\n  \"priceLabel\": \"S/ 50 por punto\",\n  \"zoneName\": \"Centro Cívico\",\n  \"acceptsBarter\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/listings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "listings"]
+            }
+          }
+        },
+        {
+          "name": "Crear préstamo en Biblioteca de Herramientas",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"loan\",\n  \"title\": \"Amoladora angular Bosch 4.5 pulgadas\",\n  \"description\": \"Presto amoladora por 1 o 2 días a vecinos verificados de la cuadra para trabajos puntuales en casa.\",\n  \"category\": \"Herramientas\",\n  \"priceLabel\": \"Préstamo S/ 0 (1–2 días)\",\n  \"zoneName\": \"Centro Cívico\",\n  \"acceptsBarter\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/listings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "listings"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Perfiles, Auth y DNI/CE (Tabla profiles)",
+      "item": [
+        {
+          "name": "Registrar nuevo vecino con DNI (PUT /session)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Jorge Ramírez\",\n  \"zoneName\": \"Santa Beatriz\",\n  \"email\": \"jorge.ramirez@nexobarrio.test\",\n  \"password\": \"VecinoSeguro2026!\",\n  \"docType\": \"DNI\",\n  \"docNumber\": \"45892103\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "session"]
+            }
+          }
+        },
+        {
+          "name": "Iniciar sesión como Vecina Demo (Lucía)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@nexobarrio.test\",\n  \"password\": \"DemoNexo!2026\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "session"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar perfil y verificar DNI (PATCH /session)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Lucía Paredes\",\n  \"zoneName\": \"Centro Cívico\",\n  \"bio\": \"Vecina activa en el comité de herramientas compartidas.\",\n  \"verifyDocument\": true,\n  \"docType\": \"DNI\",\n  \"docNumber\": \"72849103\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "session"]
+            }
+          }
+        },
+        {
+          "name": "Consultar sesión activa (GET /session)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "session"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Solicitudes, Trueques y Préstamos (Tabla interactions)",
+      "item": [
+        {
+          "name": "Crear solicitud de servicio / préstamo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json.interaction && json.interaction.id) {",
+                  "    pm.collectionVariables.set('interactionId', json.interaction.id);",
+                  "  }",
+                  "} catch (e) {}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"demo-1\",\n  \"listingTitle\": \"Electricista matriculado · Reparaciones y tableros\",\n  \"type\": \"service\",\n  \"details\": \"Hola Carlos, necesito revisar la llave diferencial de la cocina hoy por la tarde.\",\n  \"idempotencyKey\": \"550e8400-e29b-41d4-a716-446655440099\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/interactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "interactions"]
+            }
+          }
+        },
+        {
+          "name": "Listar solicitudes e interacciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/interactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "interactions"]
+            }
+          }
+        },
+        {
+          "name": "Aceptar solicitud (PATCH /interactions/:id)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-User-Id", "value": "proveedor.demo@nexobarrio.test" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"accept\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/interactions/{{interactionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "interactions", "{{interactionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Confirmar cierre completado (PATCH /interactions/:id)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"confirm-complete\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/interactions/{{interactionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "interactions", "{{interactionId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Chat y Mensajes (Tabla messages)",
+      "item": [
+        {
+          "name": "Enviar mensaje en la solicitud",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interactionId\": \"{{interactionId}}\",\n  \"body\": \"Perfecto Carlos, te espero a las 4:30 p. m. en la recepción del edificio.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Listar mensajes de una interacción",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/messages?interactionId={{interactionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "messages"],
+              "query": [
+                { "key": "interactionId", "value": "{{interactionId}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Reseñas y Visto Bueno Vecinal (Tabla reviews)",
+      "item": [
+        {
+          "name": "Guardar calificación de 5 estrellas ★",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interactionId\": \"{{interactionId}}\",\n  \"stars\": 5,\n  \"comment\": \"Excelente atención de Carlos, llegó puntual y dejó el tablero eléctrico seguro.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/reviews",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "reviews"]
+            }
+          }
+        },
+        {
+          "name": "Listar reseñas guardadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/reviews",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "reviews"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Muro Vecinal y Círculos (Tabla community_posts)",
+      "item": [
+        {
+          "name": "Listar publicaciones del Muro Vecinal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/community?circle=Centro%20C%C3%ADvico",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "community"],
+              "query": [
+                { "key": "circle", "value": "Centro Cívico" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear publicación en Círculo Vecinal",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"circleName\": \"Centro Cívico\",\n  \"authorName\": \"Lucía Paredes\",\n  \"authorInitials\": \"LP\",\n  \"body\": \"Vecinos, recomiendo el servicio eléctrico de Carlos Mendoza, solucionó el corto en 20 minutos.\",\n  \"hasSharedListing\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/community",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "community"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Emergencias y Comunidad Activa (Tabla emergency_board)",
+      "item": [
+        {
+          "name": "Listar recursos y necesidades de Emergencia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/emergency",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "emergency"]
+            }
+          }
+        },
+        {
+          "name": "Registrar recurso en Comunidad Activa",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"Recurso disponible\",\n  \"title\": \"Bidones de agua potable y botiquín de primeros auxilios en recepción\",\n  \"zoneName\": \"Centro Cívico\",\n  \"source\": \"Comité Vecinal Jr. Washington\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/app/emergency",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "emergency"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Notificaciones (/api/app/notifications)",
+      "item": [
+        {
+          "name": "Listar notificaciones del vecino",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "notifications"]
+            }
+          }
+        },
+        {
+          "name": "Marcar todas como leídas",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-User-Id", "value": "demo@nexobarrio.test" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "app", "notifications"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

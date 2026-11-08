@@ -1,5 +1,7 @@
 node_modules/
 .next/
+.next-build/
+.next-frontend/
 out/
 dist/
 build/
@@ -21,3 +23,16 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+*.db
+*.db-shm
+*.db-wal
+!.env.example
+.venv/
+backend/.venv/
+__pycache__/
+*.pyc
+
+
+.vscode/
+pyrefly.toml
+pyrightconfig.json
