@@ -6,9 +6,15 @@ from app.repositories.seed_store import USERS
 
 class AuthRepository:
     @staticmethod
-    def find_by_credentials(email: str, password: str) -> Optional[Dict[str, Any]]:
+    def find_by_credentials(identifier: str, password: str) -> Optional[Dict[str, Any]]:
+        clean_id = identifier.strip().lower()
         matched = next(
-            (u for u in USERS if u["email"].lower() == email and u["password"] == password),
+            (
+                u
+                for u in USERS
+                if (u["email"].lower() == clean_id or str(u.get("docNumber", "")).lower() == clean_id)
+                and u["password"] == password
+            ),
             None,
         )
         if matched:
@@ -20,7 +26,7 @@ class AuthRepository:
                 res = (
                     supabase.table("profiles")
                     .select("*")
-                    .eq("email", email)
+                    .or_(f"email.eq.{clean_id},doc_number.eq.{clean_id.upper()}")
                     .limit(1)
                     .execute()
                 )
@@ -34,6 +40,8 @@ class AuthRepository:
                         "zoneName": str(row["zone_name"]),
                         "bio": row.get("bio"),
                         "verificationStatus": str(row.get("verification_status") or "verified"),
+                        "docType": row.get("doc_type"),
+                        "docNumber": row.get("doc_number"),
                     }
             except Exception:
                 pass
@@ -60,8 +68,8 @@ class AuthRepository:
                             "email": email,
                             "display_name": display_name,
                             "zone_name": zone_name,
-                            "doc_type": doc_type if doc_type in ("DNI", "CE") else None,
-                            "doc_number": doc_number or None,
+                            "doc_type": doc_type.upper() if doc_type else None,
+                            "doc_number": doc_number.upper() if doc_number else None,
                             "verification_status": verification_status,
                         },
                         on_conflict="email",

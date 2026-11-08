@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { listingArt } from '@/lib/listing-art'
 import { ProviderProfileModal } from '@/components/modals/ProviderProfileModal'
+import { api } from '@/lib/api-client'
 import type { ListingView, InteractionView } from '@/app/(frontend)/NeighborhoodApp'
 
 const kindLabel: Record<string, string> = {
@@ -111,26 +112,41 @@ export function DetailModal({
       return
     }
 
-    const interaction: InteractionView = {
-      id: crypto.randomUUID(),
-      listingTitle: item.title,
-      type,
-      summary:
+    try {
+      const summaryText =
         item.kind === 'loan'
           ? `${details} Plazo solicitado: ${loanDays} día${loanDays === 1 ? '' : 's'}.`
-          : details,
-      updatedAt: new Date().toISOString(),
-      status: type === 'barter' ? 'proposed' : 'requested',
-      syncState: 'local',
-      role: 'requester',
-      ...(type === 'loan'
-        ? { returnFlow: { dueAt: new Date(Date.now() + loanDays * 86400000).toISOString() } }
-        : {}),
-    }
+          : details
 
-    onCreated(interaction)
-    setRequestState('confirmed')
-    setRequestMessage('Solicitud guardada en este dispositivo. Ya aparece en Actividad.')
+      const remote = await api.createInteraction({
+        listingId: item.id,
+        listingTitle: item.title,
+        type,
+        summary: summaryText,
+        dueDays: item.kind === 'loan' ? loanDays : undefined,
+      })
+
+      const interaction: InteractionView = remote || {
+        id: crypto.randomUUID(),
+        listingTitle: item.title,
+        type,
+        summary: summaryText,
+        updatedAt: new Date().toISOString(),
+        status: type === 'barter' ? 'proposed' : 'requested',
+        syncState: 'local',
+        role: 'requester',
+        ...(type === 'loan'
+          ? { returnFlow: { dueAt: new Date(Date.now() + loanDays * 86400000).toISOString() } }
+          : {}),
+      }
+
+      onCreated(interaction)
+      setRequestState('confirmed')
+      setRequestMessage('Solicitud guardada y sincronizada. Ya aparece en Actividad.')
+    } catch {
+      setRequestState('error')
+      setRequestMessage('No se pudo enviar la solicitud.')
+    }
   }
 
   return (

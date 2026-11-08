@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { readLocal, saveSession, writeLocal, type LocalUser } from '@/lib/local-store'
+import { api } from '@/lib/api-client'
 
 type LocalAccount = { user: LocalUser; passwordDigest: string }
 
@@ -154,37 +155,53 @@ export function AuthForm({
 
         const finalName = displayName.trim() || String(data.displayName || '').trim() || 'Vecino de la zona'
 
-        const user: LocalUser = {
-          id: crypto.randomUUID(),
-          email,
-          displayName: finalName,
-          zoneName,
-          verificationStatus: cleanDoc ? 'verified' : 'unverified',
-          docType,
-          docNumber: cleanDoc || undefined,
+        try {
+          const user = await api.register({
+            displayName: finalName,
+            email,
+            password: String(data.password || ''),
+            zoneName,
+            docType,
+            docNumber: cleanDoc || undefined,
+          })
+          saveSession(user)
+        } catch {
+          const user: LocalUser = {
+            id: crypto.randomUUID(),
+            email,
+            displayName: finalName,
+            zoneName,
+            verificationStatus: cleanDoc ? 'verified' : 'unverified',
+            docType,
+            docNumber: cleanDoc || undefined,
+          }
+          writeLocal('nexobarrio-accounts', [...accounts, { user, passwordDigest }])
+          saveSession(user)
         }
-
-        writeLocal('nexobarrio-accounts', [...accounts, { user, passwordDigest }])
-        saveSession(user)
       } else {
         const identifier = String(data.identifier || data.email || '').trim().toLowerCase()
-        const account = accounts.find(
-          (entry) =>
-            (entry.user.email.toLowerCase() === identifier ||
-              (entry.user.docNumber && entry.user.docNumber.toLowerCase() === identifier)) &&
-            entry.passwordDigest === passwordDigest,
-        )
+        try {
+          const user = await api.login(identifier, String(data.password || ''))
+          saveSession(user)
+        } catch {
+          const account = accounts.find(
+            (entry) =>
+              (entry.user.email.toLowerCase() === identifier ||
+                (entry.user.docNumber && entry.user.docNumber.toLowerCase() === identifier)) &&
+              entry.passwordDigest === passwordDigest,
+          )
 
-        if (!account) {
-          setError('Correo, documento o contraseña incorrectos en este dispositivo.')
-          return
+          if (!account) {
+            setError('Correo, documento o contraseña incorrectos.')
+            return
+          }
+          saveSession(account.user)
         }
-        saveSession(account.user)
       }
 
       window.location.assign('/')
     } catch {
-      setError('No se pudo guardar el perfil local.')
+      setError('No se pudo guardar el perfil.')
     } finally {
       setPending(false)
     }
@@ -193,15 +210,23 @@ export function AuthForm({
   const loginDemo = async (provider = false) => {
     setPending(true)
     setError('')
-    saveSession({
-      id: provider ? 'demo-carlos' : 'demo-lucia',
-      displayName: provider ? 'Carlos Mendoza' : 'Lucía',
-      zoneName: 'Centro Cívico',
-      email: provider ? 'proveedor.demo@nexobarrio.test' : 'demo@nexobarrio.test',
-      verificationStatus: 'verified',
-      docType: provider ? 'dni' : 'ce',
-      docNumber: provider ? '44556677' : '001234567',
-    })
+    const email = provider ? 'proveedor.demo@nexobarrio.test' : 'demo@nexobarrio.test'
+    const password = provider ? 'ProveedorNexo!2026' : 'DemoNexo!2026'
+
+    try {
+      const user = await api.login(email, password)
+      saveSession(user)
+    } catch {
+      saveSession({
+        id: provider ? 'demo-carlos' : 'demo-lucia',
+        displayName: provider ? 'Carlos Mendoza' : 'Lucía',
+        zoneName: 'Centro Cívico',
+        email,
+        verificationStatus: 'verified',
+        docType: provider ? 'dni' : 'ce',
+        docNumber: provider ? '44556677' : '001234567',
+      })
+    }
     window.location.assign('/')
   }
 

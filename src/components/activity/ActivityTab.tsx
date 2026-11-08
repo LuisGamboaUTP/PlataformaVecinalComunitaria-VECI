@@ -13,6 +13,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import { readLocal, writeLocal } from '@/lib/local-store'
+import { api } from '@/lib/api-client'
 import type { InteractionView } from '@/app/(frontend)/NeighborhoodApp'
 
 export function ActivityTab({
@@ -53,10 +54,47 @@ export function ActivityTab({
     setActionMessage('')
     const current = interactions.find((item) => item.id === id)
     if (!current) return
-    const statuses: Record<string, string> = { accept: 'accepted', reject: 'rejected', cancel: 'cancelled', start: 'in-progress', 'mark-delivered': 'return-pending', 'confirm-complete': 'completed', 'close-return': 'completed', 'confirm-return': 'return-pending' }
-    onUpdated({ ...current, status: statuses[action] || current.status, updatedAt: new Date().toISOString(), returnFlow: action === 'confirm-return' ? { ...current.returnFlow, borrowerConfirmed: true } : current.returnFlow })
-    setActionMessage('Estado actualizado en este dispositivo.')
-    setPendingId(null)
+    const statuses: Record<string, string> = {
+      accept: 'accepted',
+      reject: 'rejected',
+      cancel: 'cancelled',
+      start: 'in-progress',
+      'mark-delivered': 'return-pending',
+      'confirm-complete': 'completed',
+      'close-return': 'completed',
+      'confirm-return': 'return-pending',
+    }
+
+    try {
+      const remote = await api.updateInteraction(id, action)
+      if (remote) {
+        onUpdated(remote)
+      } else {
+        onUpdated({
+          ...current,
+          status: statuses[action] || current.status,
+          updatedAt: new Date().toISOString(),
+          returnFlow:
+            action === 'confirm-return'
+              ? { ...current.returnFlow, borrowerConfirmed: true }
+              : current.returnFlow,
+        })
+      }
+      setActionMessage('Estado actualizado y sincronizado con tu vecino.')
+    } catch {
+      onUpdated({
+        ...current,
+        status: statuses[action] || current.status,
+        updatedAt: new Date().toISOString(),
+        returnFlow:
+          action === 'confirm-return'
+            ? { ...current.returnFlow, borrowerConfirmed: true }
+            : current.returnFlow,
+      })
+      setActionMessage('Estado actualizado en este dispositivo.')
+    } finally {
+      setPendingId(null)
+    }
   }
 
   return (

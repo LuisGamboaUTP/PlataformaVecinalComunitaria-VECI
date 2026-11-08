@@ -21,10 +21,13 @@ def get_session(
     return {
         "user": {
             "id": str(user.get("id", "")),
+            "email": user.get("email"),
             "displayName": user.get("displayName"),
             "zoneName": user.get("zoneName"),
             "bio": user.get("bio"),
             "verificationStatus": user.get("verificationStatus", "not-verified"),
+            "docType": user.get("docType"),
+            "docNumber": user.get("docNumber"),
         }
     }
 
@@ -51,9 +54,12 @@ def login_session(payload: LoginInput, response: Response):
     return {
         "user": {
             "id": str(matched["id"]),
+            "email": matched.get("email"),
             "displayName": matched["displayName"],
             "zoneName": matched["zoneName"],
             "verificationStatus": matched.get("verificationStatus", "verified"),
+            "docType": matched.get("docType"),
+            "docNumber": matched.get("docNumber"),
         }
     }
 
@@ -79,14 +85,15 @@ def register_session(payload: RegisterInput, response: Response):
 
     verification_status = "unverified"
     if doc_number:
-        valid_dni = doc_type == "DNI" and bool(re.match(r"^\d{8}$", doc_number))
-        valid_ce = doc_type == "CE" and bool(re.match(r"^[A-Za-z0-9]{9,12}$", doc_number))
-        if not valid_dni and not valid_ce:
+        valid_dni = doc_type.upper() == "DNI" and bool(re.match(r"^\d{8}$", doc_number))
+        valid_ce = doc_type.upper() == "CE" and bool(re.match(r"^[A-Za-z0-9]{9,16}$", doc_number))
+        valid_pas = doc_type.upper() in ("PASAPORTE", "PAS") and len(doc_number) >= 6
+        if not valid_dni and not valid_ce and not valid_pas:
             return JSONResponse(
                 status_code=422,
                 content={
                     "error": {
-                        "message": "Documento inválido: usa 8 dígitos para DNI o 9-12 caracteres alfanuméricos para Carnet de Extranjería."
+                        "message": "Documento inválido: usa 8 dígitos para DNI, 9-16 caracteres para Carnet de Extranjería o pasaporte válido."
                     }
                 },
             )

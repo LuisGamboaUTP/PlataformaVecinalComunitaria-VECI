@@ -75,6 +75,8 @@ USERS: List[Dict[str, Any]] = [
         "zoneName": "Centro Cívico",
         "bio": "Vecina de Centro Cívico interesada en trueques, préstamos de herramientas y apoyo solidario.",
         "verificationStatus": "verified",
+        "docType": "CE",
+        "docNumber": "001234567",
     },
     {
         "id": "user-carlos",
@@ -84,6 +86,8 @@ USERS: List[Dict[str, Any]] = [
         "zoneName": "Centro Cívico",
         "bio": "Técnico electricista matriculado con 10 años atendiendo emergencias y mantenimiento en el barrio.",
         "verificationStatus": "verified",
+        "docType": "DNI",
+        "docNumber": "44556677",
     },
 ]
 

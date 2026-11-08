@@ -57,6 +57,7 @@ import { ExploreTab } from '@/components/explore/ExploreTab'
 import { PublishTab } from '@/components/publish/PublishTab'
 
 import { currentUser, readLocal, saveSession, writeLocal, type LocalUser } from '@/lib/local-store'
+import { api } from '@/lib/api-client'
 
 export type ListingView = {
   id: string
@@ -206,6 +207,21 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
     setLiveListings([...readLocal<ListingView[]>('nexobarrio-listings', []), ...listings])
     setInteractions(readLocal<InteractionView[]>('nexobarrio-interactions', []))
 
+    // Cargar sesión, publicaciones e interacciones reales de FastAPI + Supabase
+    void api.getSession().then((user) => {
+      if (user) setSessionUser(user)
+    })
+    void api.getListings().then((remoteListings) => {
+      if (remoteListings && remoteListings.length > 0) {
+        setLiveListings(remoteListings)
+      }
+    })
+    void api.getInteractions().then((remoteInteractions) => {
+      if (remoteInteractions && remoteInteractions.length > 0) {
+        setInteractions(remoteInteractions)
+      }
+    })
+
     if ('serviceWorker' in window.navigator && process.env.NODE_ENV === 'production') {
       void window.navigator.serviceWorker.register('/sw.js')
     }
@@ -339,19 +355,32 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
     setPublishMessage('')
 
     try {
-      const listing: ListingView = {
-        id: crypto.randomUUID(),
+      const payload = {
         title: draft.title.trim(),
         description: draft.description.trim(),
         kind: draft.kind,
-        modes: [draft.kind, ...(draft.acceptsBarter ? ['barter'] : [])],
-        category: draft.category,
+        category: draft.category || 'General',
         priceLabel: draft.priceLabel,
+        zoneName: zone,
+        acceptsBarter: draft.acceptsBarter,
+        x: 35 + Math.round(Math.random() * 30),
+        y: 35 + Math.round(Math.random() * 30),
+      }
+
+      const remoteListing = await api.createListing(payload)
+      const listing: ListingView = remoteListing || {
+        id: crypto.randomUUID(),
+        title: payload.title,
+        description: payload.description,
+        kind: payload.kind,
+        modes: [payload.kind, ...(payload.acceptsBarter ? ['barter'] : [])],
+        category: payload.category,
+        priceLabel: payload.priceLabel,
         zoneName: zone,
         locationLabel: `Cerca de ${zone}`,
         distanceKm: 0.5,
-        x: 35 + Math.round(Math.random() * 30),
-        y: 35 + Math.round(Math.random() * 30),
+        x: payload.x,
+        y: payload.y,
         providerName: sessionUser?.displayName || 'Vecino de la zona',
         initials: (sessionUser?.displayName || 'NB').slice(0, 2).toUpperCase(),
         createdAt: new Date().toISOString(),
@@ -365,7 +394,11 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
       form.reset()
       setPhotoName('')
       setPublished(true)
-      setPublishMessage('Publicación guardada en este dispositivo.')
+      setPublishMessage(
+        remoteListing
+          ? 'Publicación guardada en Supabase y visible para tus vecinos.'
+          : 'Publicación guardada en este dispositivo.',
+      )
     } catch {
       setPublishMessage('No se pudo guardar. El borrador sigue disponible.')
     } finally {
@@ -612,6 +645,7 @@ export function NeighborhoodApp({ listings }: { listings: ListingView[] }) {
                 user={sessionUser}
                 savedCount={saved.size}
                 onLogout={async () => {
+                  await api.logout()
                   saveSession(null)
                   setSessionUser(null)
                   setModal(null)
