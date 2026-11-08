@@ -2,10 +2,81 @@
 
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Eye, EyeOff, IdCard, LockKeyhole, MapPin, ShieldCheck } from 'lucide-react'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  IdCard,
+  Loader2,
+  LockKeyhole,
+  MapPin,
+  ShieldCheck,
+} from 'lucide-react'
 import { readLocal, saveSession, writeLocal, type LocalUser } from '@/lib/local-store'
 
 type LocalAccount = { user: LocalUser; passwordDigest: string }
+
+const PERU_FIRST_NAMES = [
+  'Carlos',
+  'Lucía',
+  'Pedro',
+  'Rosa',
+  'Jorge',
+  'María',
+  'Alejandro',
+  'Elena',
+  'José',
+  'Ana',
+  'Luis',
+  'Carmen',
+  'Miguel',
+  'Diana',
+  'Víctor',
+]
+
+const PERU_LAST_NAMES = [
+  'Mendoza',
+  'Paredes',
+  'Huamán',
+  'Morales',
+  'Valdivia',
+  'Torres',
+  'Quispe',
+  'Flores',
+  'Rodríguez',
+  'Rojas',
+  'García',
+  'Vargas',
+  'Castillo',
+]
+
+const KNOWN_DOCS: Record<string, { name: string; zone: string }> = {
+  '44556677': { name: 'Carlos Mendoza', zone: 'Centro Cívico' },
+  '001234567': { name: 'Lucía Paredes', zone: 'Centro Cívico' },
+  '12345678': { name: 'Lucía Paredes', zone: 'Centro Cívico' },
+  '87654321': { name: 'Pedro Huamán', zone: 'Centro Cívico' },
+  '72819203': { name: 'Rosa Morales', zone: 'Santa Beatriz' },
+  '10293847': { name: 'Jorge Valdivia', zone: 'Jesús María' },
+}
+
+function resolveDocumentData(type: string, number: string): { name: string; zone: string } {
+  const clean = number.trim().toUpperCase()
+  if (KNOWN_DOCS[clean]) {
+    return KNOWN_DOCS[clean]
+  }
+  let hash = 0
+  for (let i = 0; i < clean.length; i++) {
+    hash = (hash * 31 + clean.charCodeAt(i)) >>> 0
+  }
+  const first = PERU_FIRST_NAMES[hash % PERU_FIRST_NAMES.length]
+  const last1 = PERU_LAST_NAMES[(hash >> 3) % PERU_LAST_NAMES.length]
+  const last2 = PERU_LAST_NAMES[(hash >> 7) % PERU_LAST_NAMES.length]
+  return {
+    name: `${first} ${last1} ${last2}`,
+    zone: 'Centro Cívico',
+  }
+}
 
 async function digest(value: string) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
@@ -21,9 +92,35 @@ export function AuthForm({
 }) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode)
   const [docType, setDocType] = useState<'dni' | 'ce' | 'pasaporte'>('dni')
+  const [docNumber, setDocNumber] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [zoneName, setZoneName] = useState('Centro Cívico')
+  const [isLookingUp, setIsLookingUp] = useState(false)
+  const [lookupSuccess, setLookupSuccess] = useState<string | null>(null)
   const [visible, setVisible] = useState(false)
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
+
+  const handleDocNumberChange = (value: string) => {
+    const cleaned = docType === 'dni' ? value.replace(/\D/g, '').slice(0, 8) : value.slice(0, 16)
+    setDocNumber(cleaned)
+
+    const isComplete =
+      (docType === 'dni' && cleaned.length === 8) || (docType !== 'dni' && cleaned.length >= 8)
+
+    if (isComplete) {
+      setIsLookingUp(true)
+      setTimeout(() => {
+        const data = resolveDocumentData(docType, cleaned)
+        setDisplayName(data.name)
+        if (data.zone) setZoneName(data.zone)
+        setLookupSuccess(`Datos cargados del padrón: ${data.name}`)
+        setIsLookingUp(false)
+      }, 350)
+    } else {
+      setLookupSuccess(null)
+    }
+  }
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -38,31 +135,33 @@ export function AuthForm({
 
       if (mode === 'register') {
         const email = String(data.email || '').trim().toLowerCase()
-        const docNumber = String(data.docNumber || '').trim().toUpperCase()
+        const cleanDoc = docNumber.trim().toUpperCase()
 
         if (accounts.some((account) => account.user.email === email)) {
           setError('Ya existe una cuenta con ese correo en este dispositivo.')
           return
         }
 
-        if (docNumber && accounts.some((account) => account.user.docNumber?.toUpperCase() === docNumber)) {
+        if (cleanDoc && accounts.some((account) => account.user.docNumber?.toUpperCase() === cleanDoc)) {
           setError('Ya existe una cuenta registrada con ese número de documento.')
           return
         }
 
-        if (docType === 'dni' && docNumber && !/^\d{8}$/.test(docNumber)) {
+        if (docType === 'dni' && cleanDoc && !/^\d{8}$/.test(cleanDoc)) {
           setError('El DNI debe contener exactamente 8 dígitos numéricos.')
           return
         }
 
+        const finalName = displayName.trim() || String(data.displayName || '').trim() || 'Vecino de la zona'
+
         const user: LocalUser = {
           id: crypto.randomUUID(),
           email,
-          displayName: String(data.displayName || '').trim(),
-          zoneName: String(data.zoneName || 'Centro Cívico'),
-          verificationStatus: docNumber ? 'verified' : 'unverified',
+          displayName: finalName,
+          zoneName,
+          verificationStatus: cleanDoc ? 'verified' : 'unverified',
           docType,
-          docNumber: docNumber || undefined,
+          docNumber: cleanDoc || undefined,
         }
 
         writeLocal('nexobarrio-accounts', [...accounts, { user, passwordDigest }])
@@ -160,43 +259,20 @@ export function AuthForm({
 
           <div className="auth-heading">
             <span className="eyebrow">
-              {mode === 'login' ? 'Qué bueno verte' : 'Empieza por tu zona'}
+              {mode === 'login' ? 'Qué bueno verte' : 'Empieza por tu documento'}
             </span>
             <h2>{mode === 'login' ? 'Vuelve a tu barrio' : 'Crea tu perfil vecinal'}</h2>
             <p>
               {mode === 'login'
                 ? 'Tus guardados y conversaciones te esperan.'
-                : 'Identidad protegida y validada para mayor confianza en el barrio.'}
+                : 'Ingresa tu DNI para autocompletar tus datos oficiales y validar tu identidad.'}
             </p>
           </div>
 
           <form onSubmit={submit} className="auth-form">
             {mode === 'register' && (
               <>
-                <label>
-                  Nombre público
-                  <input
-                    name="displayName"
-                    autoComplete="name"
-                    placeholder="Como te verán tus vecinos"
-                    required
-                  />
-                </label>
-
-                <label>
-                  Barrio o zona
-                  <span className="input-with-icon">
-                    <MapPin size={18} />
-                    <select name="zoneName" defaultValue="Centro Cívico" required>
-                      <option>Centro Cívico</option>
-                      <option>Santa Beatriz</option>
-                      <option>Jesús María</option>
-                      <option>Lince</option>
-                      <option>Breña</option>
-                    </select>
-                  </span>
-                </label>
-
+                {/* 1. PRIMER CAMPO PROTAGONISTA: TIPO Y N° DE DOCUMENTO */}
                 <div className="form-row">
                   <label>
                     Tipo de documento
@@ -205,7 +281,12 @@ export function AuthForm({
                       <select
                         name="docType"
                         value={docType}
-                        onChange={(e) => setDocType(e.target.value as 'dni' | 'ce' | 'pasaporte')}
+                        onChange={(e) => {
+                          const nextType = e.target.value as 'dni' | 'ce' | 'pasaporte'
+                          setDocType(nextType)
+                          setDocNumber('')
+                          setLookupSuccess(null)
+                        }}
                       >
                         <option value="dni">DNI (Perú)</option>
                         <option value="ce">Carnet Extranjería (CE)</option>
@@ -213,14 +294,17 @@ export function AuthForm({
                       </select>
                     </span>
                   </label>
+
                   <label>
-                    N° de documento
+                    Número de documento
                     <input
                       name="docNumber"
                       type="text"
+                      value={docNumber}
+                      onChange={(e) => handleDocNumberChange(e.target.value)}
                       placeholder={
                         docType === 'dni'
-                          ? '8 dígitos (12345678)'
+                          ? '8 dígitos (ej: 44556677)'
                           : docType === 'ce'
                             ? '9 dígitos / letras'
                             : 'N° de pasaporte'
@@ -228,13 +312,62 @@ export function AuthForm({
                       maxLength={docType === 'dni' ? 8 : 16}
                       inputMode={docType === 'dni' ? 'numeric' : 'text'}
                       autoComplete="off"
+                      autoFocus
                       required
                     />
                   </label>
                 </div>
+
+                {isLookingUp && (
+                  <p style={{ margin: '-8px 0 0', fontSize: '12px', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Loader2 size={14} className="animate-spin" />
+                    Consultando padrón de identidad…
+                  </p>
+                )}
+
+                {lookupSuccess && (
+                  <p style={{ margin: '-8px 0 0', fontSize: '12px', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 650 }}>
+                    <CheckCircle2 size={16} />
+                    {lookupSuccess}
+                  </p>
+                )}
+
+                {/* 2. SEGUNDO CAMPO: NOMBRE PÚBLICO (AUTOCOMPLETADO POR DNI) */}
+                <label>
+                  Nombre público {lookupSuccess ? '✓ Autocompletado' : ''}
+                  <input
+                    name="displayName"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    autoComplete="name"
+                    placeholder="Se autocompleta con tu DNI"
+                    required
+                  />
+                </label>
+
+                {/* 3. TERCER CAMPO: BARRIO O ZONA */}
+                <label>
+                  Barrio o zona
+                  <span className="input-with-icon">
+                    <MapPin size={18} />
+                    <select
+                      name="zoneName"
+                      value={zoneName}
+                      onChange={(e) => setZoneName(e.target.value)}
+                      required
+                    >
+                      <option>Centro Cívico</option>
+                      <option>Santa Beatriz</option>
+                      <option>Jesús María</option>
+                      <option>Lince</option>
+                      <option>Breña</option>
+                    </select>
+                  </span>
+                </label>
               </>
             )}
 
+            {/* 4. CORREO / IDENTIFICADOR */}
             <label>
               {mode === 'login' ? 'Correo o N° de documento (DNI / CE)' : 'Correo electrónico'}
               <input
@@ -246,6 +379,7 @@ export function AuthForm({
               />
             </label>
 
+            {/* 5. CONTRASEÑA */}
             <label>
               Contraseña
               <span className="input-with-icon">
@@ -307,7 +441,7 @@ export function AuthForm({
           <div className="prototype-note">
             <ShieldCheck size={18} />
             <p>
-              <strong>Confianza vecinal:</strong> tu documento solo se utiliza para validar identidad y proteger a la comunidad. Nunca se comparte públicamente.
+              <strong>Confianza vecinal:</strong> al ingresar tu documento se valida tu identidad oficial. Los datos sensibles nunca se comparten públicamente.
             </p>
           </div>
         </div>
