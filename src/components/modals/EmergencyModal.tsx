@@ -1,14 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Navigation, Volume2 } from 'lucide-react'
+import { AlertTriangle, Navigation, Volume2, VolumeX } from 'lucide-react'
 
 type Notice = { id: string; type: 'need' | 'resource'; body: string }
 const key = 'nexobarrio-emergency-notices-v1'
 const contacts = [
   { number: '116', name: 'Bomberos del Perú' },
   { number: '105', name: 'Policía Nacional' },
-  { number: '106', name: 'SAMU' },
+  { number: '106', name: 'SAMU (Ambulancia)' },
   { number: '115', name: 'Defensa Civil / INDECI' },
 ]
 
@@ -18,6 +18,8 @@ export function EmergencyModal() {
   const [type, setType] = useState<'need' | 'resource'>('resource')
   const [body, setBody] = useState('')
   const [ready, setReady] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(key) || '[]')
@@ -26,25 +28,49 @@ export function EmergencyModal() {
       /* Keep the emergency directory available. */
     }
     setReady(true)
+
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+    }
   }, [])
+
   useEffect(() => {
     if (ready) localStorage.setItem(key, JSON.stringify(notices))
   }, [notices, ready])
 
-  const speak = () => {
-    window.speechSynthesis?.cancel()
+  const toggleSpeak = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+      return
+    }
+
+    window.speechSynthesis.cancel()
     const text = contacts
-      .map(({ number, name }) => `${name}: ${number.split('').join(' ')}`)
+      .map(({ number, name }) => `${name}: llamar al ${number.split('').join(' ')}`)
       .join('. ')
+
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = 'es-PE'
-    window.speechSynthesis?.speak(utterance)
+    utterance.rate = 0.95
+
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
+    setIsSpeaking(true)
+    window.speechSynthesis.speak(utterance)
   }
+
   const addNotice = () => {
     if (body.trim().length < 5) return
     setNotices([{ id: crypto.randomUUID(), type, body: body.trim() }, ...notices])
     setBody('')
   }
+
   return (
     <div className="emergency-view">
       <div className="emergency-header">
@@ -56,6 +82,7 @@ export function EmergencyModal() {
           <h1>Emergencia y apoyo</h1>
         </div>
       </div>
+
       <div className="warning-box">
         <strong>Ante peligro inmediato, llama a un servicio oficial.</strong>
         <p>
@@ -63,6 +90,7 @@ export function EmergencyModal() {
           automáticamente a brigadas.
         </p>
       </div>
+
       <div className="segmented">
         <button
           className={section === 'contacts' ? 'is-active' : ''}
@@ -77,11 +105,40 @@ export function EmergencyModal() {
           Apoyo Vecinal Activo
         </button>
       </div>
+
       {section === 'contacts' ? (
         <>
-          <button className="secondary-button" onClick={speak}>
-            <Volume2 size={18} /> Escuchar
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 12px' }}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={toggleSpeak}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                minHeight: '40px',
+                padding: '6px 14px',
+                borderRadius: '999px',
+                fontWeight: 650,
+                fontSize: '13px',
+                borderColor: isSpeaking ? '#b91c1c' : undefined,
+                color: isSpeaking ? '#b91c1c' : undefined,
+              }}
+              aria-label={isSpeaking ? 'Detener lectura de números' : 'Escuchar números de emergencia'}
+            >
+              {isSpeaking ? (
+                <>
+                  <VolumeX size={17} /> Detener lectura
+                </>
+              ) : (
+                <>
+                  <Volume2 size={17} /> Escuchar números (Voz)
+                </>
+              )}
+            </button>
+          </div>
+
           <div className="emergency-list">
             {contacts.map(({ number, name }) => (
               <a key={number} href={`tel:${number}`}>
@@ -111,6 +168,7 @@ export function EmergencyModal() {
               <small>Brigadas activas confirmadas</small>
             </span>
           </div>
+
           <div className="emergency-compose">
             <label>
               Tipo de aviso
@@ -139,6 +197,7 @@ export function EmergencyModal() {
               Guardar aviso local
             </button>
           </div>
+
           {notices.map((notice) => (
             <article key={notice.id}>
               <span className={`kind-tag kind-tag--${notice.type === 'need' ? 'help' : 'gift'}`}>

@@ -1,11 +1,22 @@
 'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
-import { Check, Heart, MapPin, MessageCircle, ShieldCheck, Star } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import {
+  Check,
+  Heart,
+  MapPin,
+  MessageCircle,
+  ShieldCheck,
+  Star,
+  Volume2,
+  VolumeX,
+} from 'lucide-react'
 import { listingArt } from '@/lib/listing-art'
 import { ProviderProfileModal } from '@/components/modals/ProviderProfileModal'
 import type { ListingView, InteractionView } from '@/app/(frontend)/NeighborhoodApp'
+
 const kindLabel: Record<string, string> = {
   product: 'Producto',
   service: 'Servicio',
@@ -34,11 +45,51 @@ export function DetailModal({
   const [requestMessage, setRequestMessage] = useState('')
   const [loanDays, setLoanDays] = useState(1)
   const [providerOpen, setProviderOpen] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
   const [details, setDetails] = useState(
     item.kind === 'barter'
       ? 'Quiero proponer un intercambio y coordinar las condiciones.'
       : 'Me interesa esta publicación y quisiera coordinar los detalles.',
   )
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
+
+  const toggleSpeech = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+      return
+    }
+
+    window.speechSynthesis.cancel()
+    const textToRead = [
+      item.title,
+      item.description,
+      item.priceLabel ? `Costo: ${item.priceLabel}` : 'Disponible sin costo.',
+      item.approvalNote ? `Recomendación vecinal: ${item.approvalNote}` : '',
+      `Ubicación aproximada: ${item.locationLabel}`,
+    ]
+      .filter(Boolean)
+      .join('. ')
+
+    const utterance = new SpeechSynthesisUtterance(textToRead)
+    utterance.lang = 'es-PE'
+    utterance.rate = 0.95
+
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
+    setIsSpeaking(true)
+    window.speechSynthesis.speak(utterance)
+  }
 
   const createInteraction = async () => {
     setRequestState('sending')
@@ -53,11 +104,13 @@ export function DetailModal({
             : item.kind === 'help' || item.kind === 'need'
               ? 'help'
               : 'service'
+
     if (!userId) {
       setRequestState('error')
       setRequestMessage('Inicia sesión para continuar.')
       return
     }
+
     const interaction: InteractionView = {
       id: crypto.randomUUID(),
       listingTitle: item.title,
@@ -70,8 +123,11 @@ export function DetailModal({
       status: type === 'barter' ? 'proposed' : 'requested',
       syncState: 'local',
       role: 'requester',
-      ...(type === 'loan' ? { returnFlow: { dueAt: new Date(Date.now() + loanDays * 86400000).toISOString() } } : {}),
+      ...(type === 'loan'
+        ? { returnFlow: { dueAt: new Date(Date.now() + loanDays * 86400000).toISOString() } }
+        : {}),
     }
+
     onCreated(interaction)
     setRequestState('confirmed')
     setRequestMessage('Solicitud guardada en este dispositivo. Ya aparece en Actividad.')
@@ -88,6 +144,7 @@ export function DetailModal({
         />
         {item.isDemo && <span className="demo-tag">Publicación de ejemplo</span>}
       </div>
+
       <div className="detail-content">
         <div className="detail-topline">
           <span className={`kind-tag kind-tag--${item.kind}`}>{kindLabel[item.kind]}</span>
@@ -96,21 +153,42 @@ export function DetailModal({
             {saved ? 'Guardado' : 'Guardar'}
           </button>
         </div>
+
         <h1>{item.title}</h1>
-        <button
-          className="secondary-button"
-          onClick={() => {
-            window.speechSynthesis?.cancel()
-            const utterance = new SpeechSynthesisUtterance(
-              `${item.title}. ${item.description}. ${item.priceLabel || 'Sin costo'}. ${item.approvalNote || ''}`,
-            )
-            utterance.lang = 'es-PE'
-            window.speechSynthesis?.speak(utterance)
-          }}
-        >
-          🔊 Escuchar ficha
-        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '6px 0 12px' }}>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={toggleSpeech}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              minHeight: '40px',
+              padding: '6px 14px',
+              borderRadius: '999px',
+              fontWeight: 650,
+              fontSize: '13px',
+              borderColor: isSpeaking ? '#b91c1c' : undefined,
+              color: isSpeaking ? '#b91c1c' : undefined,
+            }}
+            aria-label={isSpeaking ? 'Detener lectura en voz alta' : 'Escuchar descripción de la publicación'}
+          >
+            {isSpeaking ? (
+              <>
+                <VolumeX size={17} /> Detener lectura
+              </>
+            ) : (
+              <>
+                <Volume2 size={17} /> Escuchar ficha (Voz)
+              </>
+            )}
+          </button>
+        </div>
+
         <p className="detail-lead">{item.description}</p>
+
         <div className="detail-stats">
           <span>
             <strong>{item.priceLabel || 'Sin costo'}</strong>
@@ -125,6 +203,7 @@ export function DetailModal({
             <small>Disponibilidad</small>
           </span>
         </div>
+
         <div className="provider-card">
           <span className="provider-avatar">{item.initials || 'NB'}</span>
           <div>
@@ -137,6 +216,7 @@ export function DetailModal({
           </div>
           <button onClick={() => setProviderOpen(true)}>Ver perfil</button>
         </div>
+
         {item.approvalAuthor && (
           <div className="approval-card">
             <ShieldCheck size={23} />
@@ -149,6 +229,7 @@ export function DetailModal({
             </div>
           </div>
         )}
+
         <div className="privacy-row">
           <MapPin size={18} />
           <span>
@@ -156,6 +237,7 @@ export function DetailModal({
             <small>La dirección exacta nunca es pública; se acuerda por chat.</small>
           </span>
         </div>
+
         {item.kind === 'loan' && (
           <label className="loan-term">
             Plazo del préstamo
@@ -167,6 +249,7 @@ export function DetailModal({
             <small>Ambas personas confirmarán la devolución en Actividad.</small>
           </label>
         )}
+
         {requestState === 'confirmed' ? (
           <div className="request-confirmed">
             <Check size={20} />
@@ -210,6 +293,7 @@ export function DetailModal({
           </div>
         )}
       </div>
+
       {providerOpen && <ProviderProfileModal item={item} onClose={() => setProviderOpen(false)} />}
     </div>
   )
