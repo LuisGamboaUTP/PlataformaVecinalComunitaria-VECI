@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ShieldCheck } from 'lucide-react'
+import { ArrowRight, Leaf, Recycle, ShieldCheck, Sparkles } from 'lucide-react'
 type SessionUser = {
   id: string
   displayName?: string
@@ -180,9 +180,41 @@ export function ProfileModal({
           publicar datos personales en el muro.
         </p>
       )}
-      <button className="secondary-button primary-button--wide" onClick={onOpenImpact}>
-        Ver impacto del barrio
-      </button>
+      {/* TARJETA INTERACTIVA: IMPACTO AMBIENTAL Y HUELLA VERDE */}
+      <div
+        className="profile-impact-card"
+        onClick={onOpenImpact}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onOpenImpact()
+          }
+        }}
+        aria-label="Abrir panel de impacto ambiental y economía circular"
+      >
+        <div className="profile-impact-card__header">
+          <span className="profile-impact-badge">
+            <Leaf size={14} />
+            EcoBarrio & Huella Verde
+          </span>
+          <span className="profile-impact-ods">ODS 11 · 12</span>
+        </div>
+        <div className="profile-impact-card__body">
+          <div className="profile-impact-icon">
+            <Recycle size={22} />
+          </div>
+          <div className="profile-impact-info">
+            <strong>Impacto Ambiental & Circular</strong>
+            <p>Descubre el CO₂ evitado, herramientas compartidas y ahorro vecinal.</p>
+          </div>
+        </div>
+        <div className="profile-impact-card__footer">
+          <span>Ver reporte de impacto ecológico</span>
+          <ArrowRight size={15} />
+        </div>
+      </div>
       {user ? (
         <button className="secondary-button primary-button--wide" onClick={onLogout}>
           Cerrar sesión
